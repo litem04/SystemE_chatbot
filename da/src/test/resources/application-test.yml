@@ -1,0 +1,13 @@
+spring:
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+logging:
+  level:
+    root: WARN
+    org.springframework: WARN
+    org.hibernate: OFF
+    org.hibernate.SQL: OFF

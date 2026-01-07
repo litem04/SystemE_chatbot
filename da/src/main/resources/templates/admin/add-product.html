@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Thêm sản phẩm</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+	<div class="container mt-5 w-50">
+	    <h3 th:text="${product.id == null} ? 'Thêm Sản Phẩm' : 'Cập Nhật Sản Phẩm'">Thêm sản phẩm mới</h3>
+
+	    <form th:action="@{${product.id == null} ? '/admin/products/add' : '/admin/products/update'}" 
+	          method="post" 
+	          th:object="${product}" 
+	          enctype="multipart/form-data">
+	        
+	        <input type="hidden" th:field="*{id}">
+	        <input type="hidden" th:field="*{image}">
+
+	        <div class="mb-3">
+	            <label>Tên sản phẩm:</label>
+	            <input type="text" th:field="*{name}" class="form-control" required>
+	        </div>
+
+			<div class="mb-3">
+			    <label>Giá bán:</label>
+			    <input type="text" name="price" 
+			           th:value="${product.price != null ? #numbers.formatDecimal(T(java.lang.Double).parseDouble(product.price), 0, 'COMMA', 0, 'POINT') : ''}" 
+			           class="form-control price-input"> </div>
+
+			<div class="mb-3">
+			    <label>Giá gốc (MRP):</label>
+			    <input type="text" name="mrpPrice" 
+			           th:value="${product.mrpPrice != null ? #numbers.formatDecimal(T(java.lang.Double).parseDouble(product.mrpPrice), 0, 'COMMA', 0, 'POINT') : ''}" 
+			           class="form-control price-input"> </div>
+
+	        <div class="mb-3">
+	            <label>Danh mục:</label>
+	            <select th:field="*{productCategory}" class="form-control">
+	                <option value="Mobile">Điện thoại</option>
+	                <option value="Laptop">Laptop</option>
+	                <option value="Accessories">Phụ kiện</option>
+	            </select>
+	        </div>
+			<div class="mb-3">
+			    <label>Số lượng trong kho:</label>
+			    <input type="number" th:field="*{stock}" class="form-control" required min="0">
+			</div>
+			<div class="card p-3 mb-3 bg-light border-warning">
+			                <h5 class="text-warning fw-bold">🔥 Cấu hình Flash Sale</h5>
+			                <small class="text-muted mb-2 d-block">Để trống hoặc điền 0 nếu không giảm giá.</small>
+			                
+			                <div class="row">
+								<div class="col-md-4 mb-2">
+								    <label>Giá Sale (VNĐ):</label>
+								    <input type="text" 
+								           name="discountPrice"
+								           th:value="${product.discountPrice != null ? #numbers.formatDecimal(T(java.lang.Double).parseDouble(product.discountPrice), 0, 'COMMA', 0, 'POINT') : ''}" 
+								           class="form-control price-input" 
+								           placeholder="Vd: 800,000">
+								</div>
+			                    <div class="col-md-4 mb-2">
+			                        <label>Tổng suất Sale:</label>
+			                        <input type="number" th:field="*{discountLimit}" class="form-control" value="0">
+			                    </div>
+			                    <div class="col-md-4 mb-2">
+			                        <label>Đã bán (Readonly):</label>
+			                        <input type="number" th:field="*{discountSold}" class="form-control" readonly>
+			                    </div>
+			                </div>
+			            </div>
+	        <div class="mb-3">
+	            <label>Mô tả:</label>
+	            <textarea th:field="*{description}" class="form-control" rows="3"></textarea>
+	        </div>
+	        
+	        <div class="mb-3">
+	            <label>Ảnh sản phẩm:</label><br>
+	            <img class="mb-2" style="height: 100px;" 
+	                 th:if="${product.image != null}"
+	                 th:src="${product.image.startsWith('http') ? product.image : '/product-images/' + product.image}">
+	            
+	            <input type="file" name="imageFile" class="form-control" accept="image/*">
+	        </div>
+			
+			<input type="hidden" name="active" th:value="${product.active}">
+		
+
+	        <button type="submit" class="btn btn-primary">Lưu lại</button>
+	        <a href="/admin/products" class="btn btn-secondary">Hủy</a>
+	    </form>
+	</div>
+</body>
+
+</html>
+<script>
+// 1. Tự động thêm dấu phẩy khi đang gõ
+document.querySelectorAll('.price-input').forEach(function(input) {
+    input.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/[^0-9]/g, '');
+        if (value) {
+            value = parseInt(value).toLocaleString('en-US');
+            e.target.value = value;
+        }
+    });
+});
+
+// 2. XÓA DẤU PHẨY TRƯỚC KHI SUBMIT (Để không bị lỗi 400)
+document.querySelector('form').addEventListener('submit', function(e) {
+    document.querySelectorAll('.price-input').forEach(function(input) {
+        // Biến "1,500,000" quay lại thành "1500000" trước khi gửi đi
+        input.value = input.value.replace(/,/g, '');
+    });
+});
+</script>

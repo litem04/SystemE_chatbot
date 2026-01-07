@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<footer th:fragment="footer_fragment">
+    <style>
+        #chat-launcher {
+            position: fixed; bottom: 20px; right: 20px; z-index: 1000;
+            width: 60px; height: 60px; border-radius: 50%;
+            background: #0d6efd; color: white; border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: 0.3s;
+        }
+        #chat-launcher:hover { transform: scale(1.1); background: #0b5ed7; }
+        #chat-window {
+            position: fixed; bottom: 90px; right: 20px; z-index: 1000;
+            width: 350px; height: 500px; background: white;
+            border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.15);
+            display: none; flex-direction: column; overflow: hidden;
+            border: 1px solid #eee;
+        }
+        .chat-header {
+            background: #0d6efd; color: white; padding: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        #messages {
+            flex: 1; overflow-y: auto; padding: 15px;
+            background: #f8f9fa; display: flex; flex-direction: column; gap: 10px;
+        }
+        .msg-item { max-width: 80%; padding: 8px 12px; border-radius: 15px; font-size: 14px; }
+        .msg-user { align-self: flex-end; background: #0d6efd; color: white; }
+        .msg-bot { align-self: flex-start; background: #e9ecef; color: #333; }
+        .chat-footer { padding: 10px; border-top: 1px solid #eee; background: white; }
+        .suggest-container { padding: 5px 10px; display: flex; flex-wrap: wrap; gap: 5px; }
+        .suggest-btn { 
+            font-size: 12px; cursor: pointer; border: 1px solid #0d6efd; 
+            color: #0d6efd; padding: 3px 8px; border-radius: 10px; transition: 0.2s;
+        }
+        .suggest-btn:hover { background: #0d6efd; color: white; }
+    </style>
+
+    <div id="chat-bot">
+        <button id="chat-launcher" onclick="toggleChat()">
+            <i class="fas fa-comments fa-lg"></i>
+        </button>
+
+        <div id="chat-window">
+            <div class="chat-header">
+                <span class="fw-bold"><i class="fas fa-robot me-2"></i>TechGear AI</span>
+                <div>
+                    <button class="btn btn-sm btn-outline-light me-1" onclick="clearChat()" title="Xóa lịch sử">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                    <button class="btn-close btn-close-white" onclick="toggleChat()"></button>
+                </div>
+            </div>
+            
+            <div id="messages">
+                </div>
+
+            <div class="suggest-container">
+                <div class="suggest-btn" onclick="sendMsg('Tìm Laptop gaming dưới 20tr')">Laptop Gaming < 20tr</div>
+                <div class="suggest-btn" onclick="sendMsg('iPhone 15 giá bao nhiêu?')">Giá iPhone 15</div>
+            </div>
+
+            <div class="chat-footer">
+                <div class="input-group">
+                    <input type="text" id="userInput" class="form-control" placeholder="Nhập câu hỏi..." onkeypress="if(event.key==='Enter') sendMsg()">
+                    <button class="btn btn-primary" onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'techgear_chat_history';
+
+        // 1. Khi vừa load trang (bất kỳ trang nào), lấy lịch sử ra hiển thị
+        document.addEventListener("DOMContentLoaded", function() {
+            const history = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            const area = document.getElementById('messages');
+            
+            if (history.length === 0) {
+                // Tin nhắn chào mặc định nếu chưa có lịch sử
+                appendMessage('bot', "Chào bồ! Mình là trợ lý TechGear. Bạn cần tìm cấu hình máy hay check giá sản phẩm nào nè?", false);
+            } else {
+                history.forEach(item => {
+                    appendMessage(item.role, item.text, false);
+                });
+            }
+        });
+
+        function toggleChat() {
+            const windowChat = document.getElementById('chat-window');
+            windowChat.style.display = (windowChat.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        // 2. Hàm lưu tin nhắn vào LocalStorage
+        function saveToLocal(role, text) {
+            let history = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            history.push({ role, text });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+        }
+
+        // 3. Hàm xóa lịch sử
+        function clearChat() {
+            if(confirm("Bồ có muốn xóa hết tin nhắn cũ không?")) {
+                localStorage.removeItem(STORAGE_KEY);
+                document.getElementById('messages').innerHTML = '';
+                appendMessage('bot', "Đã xóa lịch sử. Bồ cần hỏi gì mới không?", true);
+            }
+        }
+
+        function appendMessage(role, text, shouldSave) {
+            const area = document.getElementById('messages');
+            const msgClass = (role === 'user') ? 'msg-user' : 'msg-bot';
+            area.innerHTML += `<div class="msg-item ${msgClass}">${text}</div>`;
+            area.scrollTop = area.scrollHeight;
+            
+            if (shouldSave) {
+                saveToLocal(role, text);
+            }
+        }
+
+        async function sendMsg(text) {
+            let input = document.getElementById('userInput');
+            let msg = text || input.value;
+            if(!msg) return;
+            
+            // Hiện tin nhắn người dùng & lưu local
+            appendMessage('user', msg, true);
+            input.value = '';
+
+            // Hiện trạng thái chờ
+            let loadingId = 'loading-' + Date.now();
+            document.getElementById('messages').innerHTML += `<div class="msg-item msg-bot" id="${loadingId}">...</div>`;
+
+            try {
+                const res = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: msg
+                });
+                const reply = await res.text();
+                
+                // Xóa cái "..." và thay bằng câu trả lời thật, sau đó lưu local
+                const loadingEl = document.getElementById(loadingId);
+                loadingEl.innerText = reply;
+                loadingEl.removeAttribute('id'); // Xóa ID để tránh trùng lặp
+                
+                saveToLocal('bot', reply);
+
+                // NẾU AI BÁO THÀNH CÔNG THÊM GIỎ HÀNG -> RELOAD TRANG ĐỂ NHẢY GIÁ
+                if (reply.includes("thành công") || reply.includes("vào giỏ hàng")) {
+                    setTimeout(() => { window.location.reload(); }, 1500);
+                }
+
+            } catch (err) {
+                document.getElementById(loadingId).innerText = "Lỗi kết nối rồi bồ ơi!";
+            }
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+        }
+    </script>
+</footer>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Quản lý sản phẩm</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"> </head>
+<body>
+<div class="container mt-5">
+    <h2>Danh sách sản phẩm</h2>
+    <a href="/admin/dashboard" class="btn btn-secondary mb-3">Quay lại Dashboard</a>
+    <a href="/admin/products/add" class="btn btn-success mb-3">Thêm mới +</a>
+
+    <table class="table table-bordered table-hover align-middle text-center">
+        <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Hình ảnh</th>
+            <th>Tên sản phẩm</th>
+            <th>Giá</th>
+            <th>Danh mục</th>
+            <th>Kho</th>  
+		  <!--    <th>Trạng thái</th>     -->  
+            <th>Hành động</th> </tr>
+        </thead>
+		<tbody>
+		<tr th:each="p : ${products}">
+		    <td th:text="${p.id}"></td>
+		    
+		    <td>
+		        <img th:src="${p.image != null and p.image.startsWith('http') ? p.image : '/product-images/' + (p.image != null ? p.image : 'no-image.png')}" 
+		             style="width: 60px; height: 60px; object-fit: contain;"
+		             onerror="this.src='https://via.placeholder.com/60?text=Err'">
+		    </td>
+		    
+		    <td th:text="${p.name}" class="text-start"></td>
+		    
+		    <td class="fw-bold text-danger">
+		        <span th:text="${p.price != null ? #numbers.formatDecimal(p.price, 0, 'COMMA', 0, 'POINT') + ' đ' : '0 đ'}"></span>
+		    </td>
+
+		    <td th:text="${p.productCategory}"></td>
+		    
+		    <td>
+		        <span th:text="${p.stock != null ? p.stock : 0}" 
+		              th:class="${(p.stock != null && p.stock > 0) ? 'badge bg-primary' : 'badge bg-danger'}">
+		        </span>
+		    </td>
+
+		    <td>
+		        <span th:if="${p.active == 'Active'}" class="badge bg-success">Đang bán</span>
+		        <span th:if="${p.active != 'Active'}" class="badge bg-secondary">Tạm ẩn</span>
+		    </td>
+
+		    <td>
+		        <a th:href="@{/admin/products/update/{id}(id=${p.id})}" class="btn btn-warning btn-sm">
+		            <i class="fas fa-edit"></i> Sửa
+		        </a>
+		        <a th:href="@{/admin/products/delete/{id}(id=${p.id})}" 
+		           onclick="return confirm('Bạn có chắc muốn xóa?')"
+		           class="btn btn-danger btn-sm">
+		            <i class="fas fa-trash"></i> Xóa
+		        </a>
+		    </td>
+		</tr>
+		</tbody>
+    </table>
+</div>
+</body>
+</html>

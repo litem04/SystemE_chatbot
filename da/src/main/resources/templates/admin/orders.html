@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Quản lý đơn hàng</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-5">
+    <h2>Quản lý Đơn hàng</h2>
+    <a href="/admin/dashboard" class="btn btn-secondary mb-3">Về Dashboard</a>
+
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Khách hàng</th>
+            <th>Ngày đặt</th>
+            <th>Tổng tiền</th>
+            <th>Trạng thái</th>
+            <th>Hành động</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="o : ${orders}">
+            <td th:text="${o.id}"></td>
+            <td>
+                <b th:text="${o.customerName}"></b><br>
+                <small th:text="${o.mobileNumber}"></small>
+            </td>
+            <td th:text="${o.orderDate}"></td>
+			<td class="text-danger fw-bold" 
+			    th:with="totalPrice=${T(java.lang.Double).parseDouble(o.productTotalPrice)}"
+			    th:text="${#numbers.formatDecimal(totalPrice, 0, 'POINT', 0, 'COMMA')} + ' đ'">
+			</td>
+            <td>
+                <span th:if="${o.orderStatus == 'PENDING'}" class="badge bg-warning text-dark">Chờ xử lý</span>
+                <span th:if="${o.orderStatus == 'DELIVERED'}" class="badge bg-success">Đã giao</span>
+                <span th:if="${o.orderStatus == 'CANCELLED'}" class="badge bg-danger">Đã hủy</span>
+            </td>
+            <td>
+                <a th:href="@{/admin/orders/view/{id}(id=${o.id})}" class="btn btn-primary btn-sm">Xem chi tiết</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

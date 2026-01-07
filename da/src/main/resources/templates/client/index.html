@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>TechGear - Trang chủ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .product-card img { height: 200px; object-fit: contain; padding: 10px; }
+        .product-card { transition: transform 0.3s; }
+        .product-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="/">TECHGEAR</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+			<form class="d-flex mx-auto" action="/search" method="get">
+			    <input class="form-control me-2" type="search" name="keyword" 
+			           placeholder="Tìm sản phẩm..." required>
+			    <button class="btn btn-outline-light" type="submit">Tìm</button>
+			</form>
+            <ul class="navbar-nav ms-auto">
+				
+                <li class="nav-item"><a class="nav-link active" href="/">Trang chủ</a></li>
+				<li class="nav-item">
+				    <a class="nav-link btn btn-outline-warning text-white ms-2 position-relative" href="/cart">
+				        <i class="fas fa-shopping-cart"></i> Giỏ hàng
+				        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+				            !
+				        </span>
+				    </a>
+				</li>
+                <li class="nav-item" th:if="${session.user == null}">
+                    <a class="nav-link" href="/login">Đăng nhập</a>
+                </li>
+                <li class="nav-item" th:if="${session.user == null}">
+                    <a class="nav-link" href="/register">Đăng ký</a>
+                </li>
+				<th:block th:if="${session.user != null}">
+				    
+				    <li class="nav-item me-2">
+				        <a class="nav-link position-relative" href="/my-orders"> 
+				            <i class="fas fa-bell"></i>
+				            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+				                2
+				                <span class="visually-hidden">unread messages</span>
+				            </span>
+				        </a>
+				    </li>
+
+				    <li class="nav-item dropdown">
+				        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+				            <i class="fas fa-user-circle me-1"></i> Xin chào, <span th:text="${session.user.name}">User</span>
+				        </a>
+				        <ul class="dropdown-menu dropdown-menu-end">
+				            <li><a class="dropdown-item" href="/profile">
+				                <i class="fas fa-id-card me-2"></i>Hồ sơ cá nhân
+				            </a></li>
+				            
+				            <li><a class="dropdown-item" href="/my-orders">
+				                <i class="fas fa-box-open me-2"></i>Đơn hàng của tôi
+				            </a></li>
+				            
+				            <li><hr class="dropdown-divider"></li>
+				            
+				            <li><a class="dropdown-item text-danger" href="/logout">
+				                <i class="fas fa-sign-out-alt me-2"></i>Đăng xuất
+				            </a></li>
+				        </ul>
+				    </li>
+				</th:block>
+                </li>
+                
+               
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="bg-primary text-white text-center py-5 mb-4">
+    <h1>Săn Sale Công Nghệ</h1>
+    <p>Giảm giá lên đến 50% các thiết bị điện tử</p>
+</div>
+<div class="bg-light py-2 shadow-sm mb-4">
+    <div class="container d-flex justify-content-center">
+        <a href="/" class="btn btn-link text-decoration-none fw-bold text-dark mx-2">Tất cả</a>
+        
+        <a href="/category?name=Mobile" class="btn btn-link text-decoration-none text-dark mx-2">Điện thoại</a>
+        <a href="/category?name=Laptop" class="btn btn-link text-decoration-none text-dark mx-2">Laptop</a>
+        <a href="/category?name=Accessories" class="btn btn-link text-decoration-none text-dark mx-2">Phụ kiện</a>
+    </div>
+</div>
+<div class="container mb-5">
+	<h3 class="text-center mb-4 fw-bold" 
+	        th:if="${keyword == null and categoryName == null}">Sản phẩm mới nhất</h3>
+
+	    <h3 class="text-center mb-4 fw-bold text-primary" th:if="${keyword != null}">
+	        Kết quả tìm kiếm cho: "<span th:text="${keyword}"></span>"
+	    </h3>
+
+	    <h3 class="text-center mb-4 fw-bold text-success" th:if="${categoryName != null}">
+	        Danh mục: <span th:text="${categoryName}"></span>
+	    </h3>
+
+	    <div th:if="${products.empty}" class="alert alert-warning text-center">
+	        Không tìm thấy sản phẩm nào! <a href="/">Quay lại xem tất cả</a>
+	    </div>
+	    
+	    <div class="row row-cols-1 row-cols-md-4 g-4">
+	       </div>
+    
+    <div class="row row-cols-1 row-cols-md-4 g-4">
+        <div class="col" th:each="p : ${products}">
+            <div class="card h-100 product-card">
+             	<img th:src="${p.image != null and p.image.startsWith('http') ? p.image : '/product-images/' + (p.image != null ? p.image : 'no-image.png')}" 
+		     style="width: 100px; height: 100px; object-fit: contain;">
+			 <div class="card-body d-flex flex-column">
+			     <h5 class="card-title text-truncate" th:text="${p.name}">Tên sản phẩm</h5>
+
+			     <div class="price-section mb-2">
+			         
+			         <th:block th:if="${p.discountPrice != null and p.discountPrice > 0 and p.discountLimit > p.discountSold}">
+			             <p class="card-text text-danger fw-bold mb-0" 
+			                th:text="${#numbers.formatDecimal(p.discountPrice, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">800k</p>
+			             
+			             <small class="text-muted text-decoration-line-through" 
+			                    th:text="${#numbers.formatDecimal(p.price, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">1tr</small>
+			             
+			             <span class="badge bg-danger ms-1" style="font-size: 0.7rem;">Flash Sale</span>
+			             
+						 <div class="progress mt-1" style="height: 3px;" 
+						      th:if="${p.discountLimit != null and p.discountLimit > 0}">
+						      
+						     <div class="progress-bar bg-danger" 
+						          th:style="'width:' + ${(p.discountSold != null ? p.discountSold : 0) * 100 / p.discountLimit} + '%'">
+						     </div>
+						 </div>
+			         </th:block>
+
+			         <th:block th:unless="${p.discountPrice != null and p.discountPrice > 0 and p.discountLimit > p.discountSold}">
+			             <p class="card-text text-dark fw-bold mb-0" 
+			                th:text="${#numbers.formatDecimal(p.price, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">1tr</p>
+			             
+			             <small class="text-muted text-decoration-line-through" 
+			                    th:if="${p.mrpPrice != null}"
+			                    th:text="${#numbers.formatDecimal(p.mrpPrice, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">1.2tr</small>
+			         </th:block>
+
+			     </div>
+
+			     <div class="mt-auto pt-3">
+			         <a th:href="@{/product/{id}(id=${p.id})}" class="btn btn-outline-primary w-100 mb-2">Xem chi tiết</a>
+			         
+			         <a th:href="@{/cart/add(productId=${p.id})}" class="btn btn-success w-100">
+			             <i class="fas fa-cart-plus"></i> Thêm vào giỏ
+			         </a>
+			     </div>
+			 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{layout/footer :: footer_fragment}"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

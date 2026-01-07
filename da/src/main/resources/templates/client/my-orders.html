@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Đơn hàng của tôi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="/">TECHGEAR</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="/">Tiếp tục mua sắm</a></li>
+                <li class="nav-item">
+                    <a class="nav-link text-warning" href="#">
+                        Xin chào, <span th:text="${session.user != null ? session.user.name : 'Khách'}">User</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-history text-primary"></i> Lịch sử đơn hàng</h2>
+    </div>
+
+    <div th:if="${orders == null or orders.empty}" class="alert alert-info text-center py-5">
+        <h4>Bạn chưa mua đơn hàng nào</h4>
+        <p>Hãy khám phá các sản phẩm công nghệ mới nhất tại TechGear.</p>
+        <a href="/" class="btn btn-primary mt-2">Mua sắm ngay</a>
+    </div>
+
+    <div th:if="${orders != null and !orders.empty}" class="bg-white p-4 rounded shadow-sm">
+        <table class="table table-hover align-middle">
+            <thead class="table-dark">
+            <tr>
+                <th>Mã đơn</th>
+                <th>Ngày đặt</th>
+                <th>Tổng tiền</th>
+                <th>Trạng thái</th>
+                <th class="text-end">Hành động</th> </tr>
+            </thead>
+            <tbody>
+            <tr th:each="o : ${orders}">
+                <td class="fw-bold text-primary" th:text="'#' + ${o.id}"></td>
+                
+                <td th:text="${o.orderDate}"></td>
+                
+                <td class="fw-bold text-danger">
+                    <span th:text="${#numbers.formatDecimal(o.productTotalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'"></span>
+                </td>
+                
+                <td>
+                    <span th:if="${o.orderStatus == 'PENDING'}" class="badge bg-warning text-dark">
+                        <i class="fas fa-spinner fa-spin me-1"></i>Chờ xử lý
+                    </span>
+                    <span th:if="${o.orderStatus == 'SHIPPED'}" class="badge bg-primary">
+                        <i class="fas fa-truck me-1"></i>Đang giao
+                    </span>
+                    <span th:if="${o.orderStatus == 'DELIVERED'}" class="badge bg-success">
+                        <i class="fas fa-check-circle me-1"></i>Giao thành công
+                    </span>
+                    <span th:if="${o.orderStatus == 'CANCELLED'}" class="badge bg-danger">
+                        <i class="fas fa-times-circle me-1"></i>Đã hủy
+                    </span>
+                </td>
+                
+                <td class="text-end">
+                    <div class="d-flex justify-content-end gap-2">
+                        <a th:href="@{/my-orders/view/{id}(id=${o.id})}" 
+                           class="btn btn-sm btn-outline-primary" 
+                           title="Xem chi tiết">
+                           <i class="fas fa-eye"></i> Xem
+                        </a>
+
+                        <a th:if="${o.orderStatus != 'CANCELLED'}"
+                           th:href="@{/download-invoice/{id}(id=${o.id})}" 
+                           class="btn btn-sm btn-success"
+                           title="Tải hóa đơn PDF">
+                           <i class="fas fa-file-pdf"></i> PDF
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div th:replace="~{layout/footer :: footer_fragment}"></div>
+
+
+</body>
+</html>

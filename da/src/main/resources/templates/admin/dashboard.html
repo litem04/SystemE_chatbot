@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .card-box { border-radius: 10px; color: white; padding: 20px; position: relative; overflow: hidden; }
+        .card-box h3 { font-size: 2.5rem; font-weight: bold; margin: 0; }
+        .card-box p { font-size: 1.1rem; margin: 0; opacity: 0.8; }
+        .card-box .icon { position: absolute; top: 10px; right: 15px; font-size: 4rem; opacity: 0.3; }
+        .bg-blue { background: linear-gradient(45deg, #4099ff, #73b4ff); }
+        .bg-green { background: linear-gradient(45deg, #2ed8b6, #59e0c5); }
+        .bg-yellow { background: linear-gradient(45deg, #FFB64D, #ffcb80); }
+        .bg-red { background: linear-gradient(45deg, #FF5370, #ff869a); }
+    </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-dark p-3">
+    <a class="navbar-brand fw-bold" href="#">TECHGEAR ADMIN</a>
+    <div>
+        <span class="text-white me-3">Xin chào, Quản trị viên</span>
+        <a href="/logout" class="btn btn-outline-danger btn-sm">Đăng xuất</a>
+    </div>
+</nav>
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-2">
+            <div class="list-group">
+                <a href="/admin/dashboard" class="list-group-item list-group-item-action active"><i class="fas fa-home me-2"></i> Tổng quan</a>
+                <a href="/admin/products" class="list-group-item list-group-item-action"><i class="fas fa-box me-2"></i> Sản phẩm</a>
+                <a href="/admin/orders" class="list-group-item list-group-item-action"><i class="fas fa-shopping-cart me-2"></i> Đơn hàng</a>
+                <a href="/admin/customers" class="list-group-item list-group-item-action"><i class="fas fa-users me-2"></i> Khách hàng</a>
+            </div>
+        </div>
+
+        <div class="col-md-10">
+            <h2 class="mb-4">Tổng quan hệ thống</h2>
+            
+			<div class="row g-3">
+			                
+				<div class="col-md-3">
+				    <div class="card-box bg-green">
+				        <div class="inner">
+				            <h3 th:text="${totalRevenueStr}">0 đ</h3> 
+				            <p>Doanh thu thực tế</p>
+
+				            <div class="mt-2 pt-2 border-top" style="border-color: rgba(255,255,255,0.3) !important;">
+				                <small style="font-size: 14px; font-weight: bold;">
+				                    <i class="fas fa-truck"></i> Đang giao: 
+				                    <span th:text="${shippingRevenueStr}">0 đ</span>
+				                </small>
+				            </div>
+				        </div>
+				        <div class="icon"><i class="fas fa-money-bill-wave"></i></div>
+				    </div>
+				</div>
+                
+                <div class="col-md-3">
+                    <div class="card-box bg-yellow">
+                        <div class="inner">
+                            <h3 th:text="${orderCount}">0</h3>
+                            <p>Tổng đơn hàng</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-shopping-cart"></i></div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card-box bg-blue">
+                        <div class="inner">
+                            <h3 th:text="${productCount}">0</h3>
+                            <p>Sản phẩm kho</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-box"></i></div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card-box bg-red">
+                        <div class="inner">
+                            <h3 th:text="${userCount}">0</h3>
+                            <p>Khách hàng</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-users"></i></div>
+                    </div>
+                </div>
+		   </div>
+
+
+		   <div class="row mt-4">
+		       <div class="col-md-12">
+		           <div class="card">
+		               <div class="card-body">
+		                   <h5 class="card-title">Biểu đồ doanh thu</h5>
+		                   <canvas id="revenueChart" style="max-height: 400px;"></canvas>
+		               </div>
+		           </div>
+		       </div>
+		   </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="card-body">
+    
+    <canvas id="revenueChart" style="max-height: 400px;"></canvas>
+</div>
+
+<script th:inline="javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+        // 1. Hứng chuỗi JSON từ Controller (Lưu ý: dùng th:utext để không bị escape ký tự)
+        // Cách an toàn nhất: Gán giá trị vào input ẩn hoặc in trực tiếp vào biến JS
+        
+        var labelsRaw = "[(${chartLabelsJSON})]"; // Sẽ in ra: ['12/12', '14/12']
+        var dataRaw =   "[(${chartDataJSON})]";   // Sẽ in ra: [80000000, 20000000]
+
+        // Convert chuỗi string thành mảng JavaScript thực sự (nếu cần, nhưng ở trên đã là cú pháp mảng rồi)
+        // Vì ta đã build string chuẩn cú pháp JS bên Java, ta có thể dùng trực tiếp hoặc eval nhẹ (nhưng cách dưới đây an toàn hơn)
+        
+        /* MẸO: Thymeleaf in text trực tiếp vào code JS sẽ chạy luôn */
+        const ctx = document.getElementById('revenueChart');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: eval(labelsRaw), // Chuyển chuỗi "['a','b']" thành mảng ['a','b']
+                    datasets: [{
+                        label: 'Doanh thu (VNĐ)',
+                        data: eval(dataRaw),     // Chuyển chuỗi "[1,2]" thành mảng [1,2]
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('vi-VN') + ' đ';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.raw.toLocaleString('vi-VN') + ' đ';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+
+</body>
+</html>
