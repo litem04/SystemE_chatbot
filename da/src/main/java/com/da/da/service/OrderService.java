@@ -31,22 +31,37 @@ public class OrderService {
     
  // Hàm 1: Lấy danh sách đơn hàng để AI trả lời khách
     public String getOrdersForAi(String emailId) {
-        // Gọi đúng hàm trong Repo của bồ
         List<Order> orders = orderRepository.findByEmailIdOrderByIdDesc(emailId);
+        StringBuilder sb = new StringBuilder("Dưới đây là danh sách đơn hàng của bạn:\n");
 
-        if (orders.isEmpty()) {
-            return "Khách hàng " + emailId + " chưa có đơn hàng nào.";
-        }
-
-        StringBuilder sb = new StringBuilder("Đây là danh sách đơn hàng của bồ:\n");
         for (Order o : orders) {
-            // Lưu ý: Thay getId(), getStatus(), getTotalPrice() bằng đúng tên getter trong class Order của bồ
+            Double totalMoney = 0.0;
+            try {
+                String priceStr = o.getProductTotalPrice(); // Ví dụ lấy ra: "1,350,000 đ"
+                if (priceStr != null && !priceStr.isEmpty()) {
+                    
+                    // 1. Xóa dấu phẩy "," và chữ "đ", khoảng trắng
+                    String cleanPrice = priceStr.replace(",", "")
+                                                .replace("đ", "")
+                                                .trim();
+                    
+                    // 2. Ép kiểu về Double an toàn
+                    totalMoney = Double.parseDouble(cleanPrice);
+                }
+            } catch (Exception e) {
+                totalMoney = 0.0; 
+                System.out.println("Lỗi parse giá tiền cho đơn hàng #" + o.getId());
+            }
+
+            // 3. Định dạng lại thành chuẩn VNĐ có dấu chấm phân cách cho chatbot dễ đọc
+            // Ví dụ: 1350000.0 -> 1.350.000 VNĐ
+            String formattedPrice = String.format(java.util.Locale.GERMANY, "%,.0f VNĐ", totalMoney);
+
             sb.append(String.format("- Đơn hàng #%s | Trạng thái: %s | Tổng tiền: %s\n", 
-                o.getId(), o.getOrderStatus(), o.getProductPrice()));
+                o.getId(), o.getOrderStatus(), formattedPrice));
         }
         return sb.toString();
     }
-
     // Hàm 2: Thống kê (nếu bồ muốn AI làm báo cáo)
     public String countByStatusForAi(String status) {
         List<Order> orders = orderRepository.findByOrderStatus(status);

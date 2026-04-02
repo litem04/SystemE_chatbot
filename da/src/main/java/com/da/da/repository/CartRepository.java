@@ -14,6 +14,8 @@ import jakarta.transaction.Transactional;
 public interface CartRepository extends JpaRepository<Cart, Long>{
 	List<Cart>findByCustomerId(Long customerId);
 	
+	List<Cart> findByCustomerIdOrderByIdAsc(Long customerId);
+	
 	Cart findByCustomerIdAndProductId( Long customerId, Long productId);
 	
 	// Tìm nhanh bằng Email (Rất quan trọng cho AI integration)

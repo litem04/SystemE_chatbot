@@ -9,7 +9,7 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
-        <a class="navbar-brand" href="/">TECHGEAR</a>
+        <a class="navbar-brand" href="/">DuHV6</a>
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item"><a class="nav-link" href="/">Tiếp tục mua sắm</a></li>
@@ -28,48 +28,71 @@
     </div>
 
     <div th:if="${!cartItems.empty}">
-        <table class="table table-bordered table-hover align-middle text-center">
-            <thead class="table-dark">
-            <tr>
-                <th>Sản phẩm</th> <th>Đơn giá</th>
-                <th>Số lượng</th>
-                <th>Thành tiền</th>
-                <th>Hành động</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="item : ${cartItems}">
-                <td class="text-start">
-                    <span class="fw-bold">Mã SP: <span th:text="${item.productId}"></span></span>
-                </td>
-                
-                <td th:text="${#numbers.formatDecimal(item.discountPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'"></td>
-                
-				<td style="width: 150px;">
-				    <form action="/cart/update" method="post" class="d-flex">
-				        <input type="hidden" name="id" th:value="${item.id}">
-				        <input type="number" name="quantity" min="1" 
-				               class="form-control text-center me-2" 
-				               th:value="${item.quantity}">
-				        
-				        <button type="submit" class="btn btn-sm btn-primary" title="Cập nhật">
-				            <i class="fas fa-sync-alt"></i>
-				        </button>
-				    </form>
-				</td>
-                
-                <td class="fw-bold text-success" 
-                    th:text="${#numbers.formatDecimal(item.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'"></td>
-                
-                <td>
-                    <a th:href="@{/cart/remove(id=${item.id})}" class="btn btn-danger btn-sm" 
-                       onclick="return confirm('Xóa món này?')">
-                        <i class="fas fa-trash"></i> Xóa
-                    </a>
-                </td>
-            </tr>
-            </tbody>
-        </table>
+		<table class="table">
+		    <thead>
+		        <tr>
+		            <th>Hình ảnh</th> <th>Sản phẩm</th>
+		            <th>Đơn giá</th>
+		            <th>Số lượng</th>
+		            <th>Thành tiền</th>
+		            <th>Hành động</th>
+		        </tr>
+		    </thead>
+			<tbody>
+			    <tr th:each="item : ${cartItems}" th:if="${item.product != null}">
+			        <td>
+			            <img th:if="${item.product.image != null}"
+			                 th:src="${item.product.image.startsWith('http') ? item.product.image : '/product-images/' + item.product.image}" 
+			                 style="width: 80px; height: 80px; object-fit: cover; border-radius: 5px;">
+			            <img th:if="${item.product.image == null}"
+			                 src="https://via.placeholder.com/80" 
+			                 style="width: 80px; height: 80px; border-radius: 5px;">
+			        </td>
+			        <td th:text="${item.product.name}"></td>
+			        
+					<td class="product-price">
+					    <div th:with="
+					        limit=${item.product.discountLimit != null ? item.product.discountLimit : 0},
+					        sold=${item.product.discountSold != null ? item.product.discountSold : 0},
+					        availableSlots=${(limit - sold) > 0 ? (limit - sold) : 0},
+					        qty=${item.quantity},
+					        hasSale=${item.product.discountPrice != null && item.product.discountPrice > 0 && availableSlots > 0}
+					    ">
+					        <div th:if="${hasSale and qty > availableSlots}">
+					            <span class="text-danger fw-bold" th:text="${availableSlots} + 'x ' + ${#numbers.formatDecimal(item.product.discountPrice, 0, 'COMMA', 0, 'POINT')} + ' đ (Flash Sale)'"></span><br>
+					            <span class="text-muted" th:text="${qty - availableSlots} + 'x ' + ${#numbers.formatDecimal(item.product.price, 0, 'COMMA', 0, 'POINT')} + ' đ (Giá gốc)'"></span>
+					            <br><small class="text-warning"><i class="fas fa-exclamation-triangle"></i> Chỉ còn [[${availableSlots}]] suất ưu đãi</small>
+					        </div>
+					        
+					        <div th:if="${hasSale and qty <= availableSlots}">
+					            <span class="text-danger fw-bold" th:text="${#numbers.formatDecimal(item.product.discountPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'"></span>
+					            <br><del class="text-muted" th:text="${#numbers.formatDecimal(item.product.price, 0, 'COMMA', 0, 'POINT')} + ' đ'"></del>
+					        </div>
+
+					        <div th:if="${!hasSale}">
+					            <span th:text="${#numbers.formatDecimal(item.product.price, 0, 'COMMA', 0, 'POINT')} + ' đ'"></span>
+					        </div>
+					    </div>
+					</td>
+
+					<td>
+					    <input type="number" th:value="${item.quantity}" 
+					           class="form-control" style="width: 70px;" min="1"
+					           th:onchange="|window.location.href='/cart/update/' + ${item.product.id} + '?qty=' + this.value|">
+					</td>
+
+					<td class="line-total text-danger fw-bold" 
+					    th:text="${#numbers.formatDecimal(item.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+					</td>
+			        
+			        <td>
+			            <a th:href="@{'/cart/remove/' + ${item.product.id}}" class="btn btn-danger btn-sm">
+			                <i class="fa fa-trash"></i> Xóa
+			            </a>
+			        </td>
+			    </tr>
+			</tbody>
+		</table>
 
         <div class="row mt-4">
             <div class="col-md-6 offset-md-6">
@@ -77,8 +100,9 @@
                     <div class="card-body">
                         <h4 class="d-flex justify-content-between">
                             <span>Tổng cộng:</span>
-                            <span class="text-danger fw-bold" 
-                                  th:text="${#numbers.formatDecimal(grandTotal, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">0 đ</span>
+							<span id="grand-total" class="text-danger fw-bold" 
+							      th:text="${#numbers.formatDecimal(grandTotal, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">0 đ</span>
+                           
                         </h4>
                         <hr>
                         <a href="/checkout" class="btn btn-success w-100 py-2 fs-5">TIẾN HÀNH ĐẶT HÀNG <i class="fas fa-arrow-right"></i></a>
@@ -89,6 +113,47 @@
     </div>
 </div>
 <div th:replace="~{layout/footer :: footer_fragment}"></div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('.qty-input').on('change', function() {
+        let input = $(this);
+        let qty = parseInt(input.val());
+        let productId = input.data('id');
+        
+        if (qty < 1 || isNaN(qty)) {
+            input.val(1);
+            qty = 1;
+        }
 
+        // 1. Lấy đơn giá
+        let price = parseFloat(input.closest('tr').find('.product-price').data('price'));
+        
+        // 2. Tính và cập nhật Thành tiền của dòng đó
+        let lineTotal = qty * price;
+        input.closest('tr').find('.line-total').text(lineTotal.toLocaleString('vi-VN') + ' đ');
+
+        // 3. Tính lại Tổng cộng toàn bộ giỏ hàng
+        updateGrandTotal();
+	
+        // 4. Gửi AJAX để lưu số lượng mới vào Server/Session
+        $.get('/cart/update/' + productId + '/' + qty, function(response) {
+            console.log("Đã cập nhật số lượng lên server");
+        }).fail(function() {
+            alert("Có lỗi khi cập nhật giỏ hàng!");
+        });
+    });
+
+    function updateGrandTotal() {
+        let total = 0;
+        $('.line-total').each(function() {
+            // Lấy text, xóa chữ 'đ' và dấu phẩy để chuyển về số
+            let val = $(this).text().replace(/[^0-9]/g, '');
+            total += parseInt(val);
+        });
+        $('#grand-total').text(total.toLocaleString('vi-VN') + ' VNĐ');
+    }
+});
+</script>
 </body>
 </html>

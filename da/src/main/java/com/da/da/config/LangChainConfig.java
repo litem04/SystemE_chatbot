@@ -11,7 +11,6 @@ import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2.AllMiniLmL6V2EmbeddingModel;
-import dev.langchain4j.model.googleai.GoogleAiEmbeddingModel;
 import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
@@ -23,13 +22,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-
 @Configuration
 public class LangChainConfig {
 	
 	@Bean
 	EmbeddingModel embeddingModel() {
-	    // Model này siêu nhẹ, chạy ngay trong RAM của bồ, không cần API Key
 	    return new AllMiniLmL6V2EmbeddingModel();
 	}  
 	
@@ -37,40 +34,34 @@ public class LangChainConfig {
 	ContentRetriever contentRetriever(EmbeddingStore<TextSegment> store, EmbeddingModel model) {
 	    return EmbeddingStoreContentRetriever.builder()
 	            .embeddingStore(store)
-	            .embeddingModel(model) // Nó sẽ tự tìm cái Bean EmbeddingModel bồ vừa tạo ở trên
+	            .embeddingModel(model) 
 	            .maxResults(3)
 	            .build();
 	}
-	
-	
-	// Thêm Bean này vào file LangChainConfig.java
+
 	@Bean
 	public ChatMemoryProvider chatMemoryProvider() {
 	    // Mỗi memoryId (mỗi người dùng) sẽ có một bộ nhớ riêng, nhớ tối đa 10 tin nhắn
 	    return memoryId -> MessageWindowChatMemory.withMaxMessages(10);
 	}
 
-
-	// 1. Não bộ Gemini
     @Bean
     ChatLanguageModel geminiModel() {
         return GoogleAiGeminiChatModel.builder()
-                .apiKey("AIzaSyCvh9rCYQVWbHH9pARKXrBcG8KinDtpeys") // Key của bồ
+                .apiKey("AIzaSyD4FbgWjKXP-XB51VuT1I1QCOZb6LNd13c") 
                 .modelName("gemini-flash-latest")
                 .build();
     }
 
-    // 2. Não bộ Ollama
     @Bean
     ChatLanguageModel ollamaModel() {
         return OllamaChatModel.builder()
-                .baseUrl("http://localhost:11434")
+        		  .baseUrl("http://localhost:11434") 
+        		  // .baseUrl("http://host.docker.internal:11434")
                 .modelName("qwen2.5:3b")
                 .build();
     }
     
-
-    // 3. Trợ lý dùng não Gemini
     @Bean("geminiAssistant")
     DigitalStoreAssistant geminiAssistant(@Qualifier("geminiModel") ChatLanguageModel model, ProductTools tools, UserOrderTools userOrderTools,CartTools cartTools, // 1. Inject nó vào đây
             ContentRetriever retriever,  ChatMemoryProvider chatMemoryProvider) {
@@ -82,7 +73,7 @@ public class LangChainConfig {
                 .build();
     }
 
-    // 4. Trợ lý dùng não Ollama
+
     @Bean("ollamaAssistant")
     DigitalStoreAssistant ollamaAssistant(@Qualifier("ollamaModel") ChatLanguageModel model, ProductTools tools,UserOrderTools userOrderTools,CartTools cartTools, // 1. Inject nó vào đây
             ContentRetriever retriever,  ChatMemoryProvider chatMemoryProvider) {

@@ -151,5 +151,33 @@ public class AdminOrderController {
 	        return "redirect:/admin/orders/view/" + id;
 	    }
 			
+	 // MỚI: Hàm xử lý khi Admin nhấn nút "Xác nhận đã nhận tiền" thủ công
+	    @PostMapping("/confirm-payment")
+	    public String confirmPaymentManually(@RequestParam("id") Integer id, RedirectAttributes ra) {
+	        Order order = orderRepository.findById(id).orElse(null);
+	        if (order == null) {
+	            ra.addFlashAttribute("error", "Không tìm thấy đơn hàng!");
+	            return "redirect:/admin/orders";
+	        }
 
+	        // Cập nhật trạng thái tiền
+	        order.setPaymentStatus("Paid");
+	        // Nếu đơn đang là chờ thanh toán thì đẩy luôn sang Chờ xử lý để Admin đi hàng
+	        if ("WAITING_FOR_PAYMENT".equals(order.getOrderStatus())) {
+	            order.setOrderStatus("PENDING");
+	        }
+	        orderRepository.save(order);
+
+	        // Gửi mail báo khách đã nhận được tiền thành công
+	        try {
+	            if (order.getEmailId() != null && !order.getEmailId().isEmpty()) {
+	                emailService.sendOrderStatusEmail(order.getEmailId(), order.getId(), "Đã thanh toán thành công");
+	            }
+	        } catch (Exception e) {
+	            System.err.println("Lỗi gửi mail: " + e.getMessage());
+	        }
+
+	        ra.addFlashAttribute("success", "Đã xác nhận thanh toán thành công cho đơn hàng!");
+	        return "redirect:/admin/orders/view/" + id;
+	    }
 }	    

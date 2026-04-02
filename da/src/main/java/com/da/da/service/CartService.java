@@ -122,6 +122,19 @@ public class CartService {
         }
     }
     
+    
+    public void updateCartQuantity(String email, Long productId, int newQuantity) {
+        Customer customer = customerRepository.findByEmail(email);
+        Cart cart = cartRepository.findByCustomerIdAndProductId(Long.valueOf(customer.getId()), productId);
+        if (cart != null) {
+            double price = (cart.getProduct().getDiscountPrice() != null && cart.getProduct().getDiscountPrice() > 0) 
+                           ? cart.getProduct().getDiscountPrice() : cart.getProduct().getPrice();
+            cart.setQuantity(newQuantity);
+            // Cập nhật lại thành tiền của món này
+            cart.setTotalPrice(String.valueOf(price * newQuantity)); 
+            cartRepository.save(cart); // LƯU VÀO DB
+        }
+    }
 
     /**
      * 2. Hàm tổng hợp giỏ hàng thành văn bản để AI trả lời khách

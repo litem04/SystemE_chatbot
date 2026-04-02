@@ -4,16 +4,18 @@ package com.da.da.controller;
 import com.da.da.entity.*;
 import com.da.da.repository.*;
 import com.da.da.service.EmailService;
+import com.da.da.service.PaymentService;
 
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.da.da.service.PdfService;
 import com.da.da.repository.OrderDetailRepository;
@@ -23,7 +25,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import java.io.ByteArrayInputStream;
-
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -38,35 +40,80 @@ public class OrderController {
     private EmailService emailService;
     @Autowired
     private PdfService pdfService;
+    @Autowired
+    private PaymentService paymentService;
     // 1. HIỂN THỊ TRANG CHECKOUT (Điền địa chỉ)
+    
+    
     @GetMapping("/checkout")
     public String checkout(HttpSession session, Model model) {
         Customer user = (Customer) session.getAttribute("user");
         if (user == null) return "redirect:/login";
 
-        // Lấy lại giỏ hàng để tính tổng tiền lần cuối
-        List<Cart> cartItems = cartRepository.findByCustomerId(Long.valueOf(user.getId()));
-        if (cartItems.isEmpty()) return "redirect:/"; // Giỏ trống thì ko cho vào
-
+        List<Cart> allItems = cartRepository.findByCustomerIdOrderByIdAsc(Long.valueOf(user.getId()));
+        
+        List<Cart> validItems = new ArrayList<>();
         double grandTotal = 0;
-        for (Cart item : cartItems) {
-            try {
-                grandTotal += Double.parseDouble(item.getTotalPrice());
-            } catch (Exception e) {}
+
+        for (Cart item : allItems) {
+            // KIỂM TRA: Nếu không có sản phẩm thì bỏ qua, không cộng tiền, không hiển thị
+            if (item.getProduct() != null) {
+                validItems.add(item);
+                
+                // Tính tiền dựa trên giá thực tế
+                double price = (item.getProduct().getDiscountPrice() != null && item.getProduct().getDiscountPrice() > 0) 
+                               ? item.getProduct().getDiscountPrice() 
+                               : item.getProduct().getPrice();
+                
+                grandTotal += price * item.getQuantity();
+            }
         }
 
-        model.addAttribute("cartItems", cartItems);
+        if (validItems.isEmpty()) return "redirect:/cart"; 
+
+        model.addAttribute("cartItems", validItems); // Chỉ gửi danh sách đã lọc sạch rác
         model.addAttribute("grandTotal", grandTotal);
-        model.addAttribute("user", user); // Để điền sẵn tên, sđt vào form
+        model.addAttribute("user", user);
 
         return "client/checkout";
     }
+ 
+    @PostMapping("/checkout")
+    public String processCheckout(@ModelAttribute Order order, Model model) {
+        // 1. Thiết lập mặc định
+        order.setOrderDate(new Date());
+        order.setOrderStatus("Pending");
+        order.setPaymentStatus("Unpaid");
+
+        // 2. Lưu vào DB
+        Order savedOrder = orderRepository.save(order);
+
+        System.out.println("Phương thức thanh toán nhận được: " + order.getPaymentMode());
+
+        // 3. Kiểm tra điều hướng
+        if ("VIETQR".equals(order.getPaymentMode())) {
+            String qrUrl = paymentService.getVietQRUrl(savedOrder);
+            model.addAttribute("qrUrl", qrUrl);
+            model.addAttribute("order", savedOrder);
+            return "client/payment_vietqr"; // Chuyển đến trang hiển thị mã QR
+        } 
+        else if ("MOMO".equals(order.getPaymentMode())) {
+            return "redirect:/momo/pay/" + savedOrder.getId();
+        } 
+        else {
+            // CHỈ trả về trang success nếu là COD hoặc các trường hợp khác
+            return "redirect:/order/success"; 
+        }
+    }
 
     // 2. XỬ LÝ ĐẶT HÀNG (Lưu vào DB)
+    
     @PostMapping("/place-order")
     public String placeOrder(@RequestParam String address,
                              @RequestParam String phone,
-                             HttpSession session) {
+                             @RequestParam String paymentMode,
+                             HttpSession session,
+                             Model model) {
         Customer user = (Customer) session.getAttribute("user");
         if (user == null) return "redirect:/login";
 
@@ -74,130 +121,126 @@ public class OrderController {
         List<Cart> cartItems = cartRepository.findByCustomerId(Long.valueOf(user.getId()));
         if (cartItems.isEmpty()) return "redirect:/";
 
-        // B. Tạo Đơn Hàng Tổng (Order)
+        // B. Tạo Đơn Hàng Tổng (Lưu tạm trước để có ID)
         Order order = new Order();
-        order.setCustomerName(user.getName()); // Lưu tên người mua
+        order.setCustomerName(user.getName());
         order.setEmailId(user.getEmail());
-        order.setMobileNumber(phone); // SĐT giao hàng
-        order.setAddress(address);    // Địa chỉ giao hàng
+        order.setMobileNumber(phone);
+        order.setAddress(address);
         order.setOrderDate(new Date());
-        order.setOrderStatus("PENDING"); // Trạng thái chờ xử lý
-        order.setPaymentMode("COD");     // Thanh toán khi nhận hàng
-
-        // Tính tổng tiền
-        double total = 0;
-        for (Cart c : cartItems) {
-            try { total += Double.parseDouble(c.getTotalPrice()); } catch (Exception e) {}
-        }
-        order.setProductTotalPrice(String.valueOf(total));
+        order.setOrderStatus("PENDING");
+        order.setPaymentStatus("Unpaid");
+        order.setPaymentMode(paymentMode);
         
-   
-        // LƯU ĐƠN HÀNG VÀO DB
+        if ("VIETQR".equals(paymentMode)) {
+            // Nếu là chuyển khoản, trạng thái là Chờ thanh toán
+            order.setOrderStatus("WAITING_FOR_PAYMENT"); 
+        } else {
+            // Nếu là COD, trạng thái là Chờ xử lý/Chờ xác nhận
+            order.setOrderStatus("PENDING"); 
+        }
         Order savedOrder = orderRepository.save(order);
         
-        if (savedOrder.getEmailId() != null) {
-            emailService.sendOrderConfirmation(
-                savedOrder.getEmailId(),               // <--- SỬA CHỖ NÀY
-                String.valueOf(savedOrder.getId()), 
-                savedOrder.getProductTotalPrice()
-            );
-          
-        }
 
-     
+        double grandTotalForOrder = 0; // Biến tính tổng tiền thực tế
 
-     // C. Lưu Chi Tiết, Trừ Kho & Cập Nhật Số Lượng Đã Bán (LOGIC MỚI)
+        // C. Lưu Chi Tiết & Trừ Kho
         for (Cart item : cartItems) {
             Product p = item.getProduct();
+            
+            // --- CHỐT CHẶN 1: Kiểm tra Product null (Fix lỗi 500) ---
+            if (p == null) {
+                cartRepository.delete(item); // Xóa luôn bản ghi rác này trong DB
+                continue; // Bỏ qua món này, tiếp tục món tiếp theo
+            }
+
             int quantityBuy = item.getQuantity();
 
-            // 1. Kiểm tra tồn kho (An toàn)
+            // 1. Kiểm tra tồn kho
             if (p.getStock() < quantityBuy) {
-                // Nếu hết hàng giữa chừng -> Có thể xóa đơn hàng vừa tạo để tránh đơn rác (Optional)
                 orderRepository.delete(savedOrder); 
                 return "redirect:/cart?error=out_of_stock"; 
             }
 
-            // ============================================================
-            // 2. TÍNH TOÁN GIÁ & SỐ LƯỢNG SALE (LOGIC TRỘN GIÁ)
-            // ============================================================
-            
-            // Lấy các chỉ số an toàn (tránh NullPointerException)
+            // 2. Logic tính giá (giữ nguyên logic trộn giá của bạn)
             int limit = (p.getDiscountLimit() != null) ? p.getDiscountLimit() : 0;
             int currentSold = (p.getDiscountSold() != null) ? p.getDiscountSold() : 0;
             Double originalPrice = p.getPrice();
-            Double salePrice = (p.getDiscountPrice() != null) ? p.getDiscountPrice() : originalPrice;
+            Double salePrice = (p.getDiscountPrice() != null && p.getDiscountPrice() > 0) ? p.getDiscountPrice() : originalPrice;
 
-            // Tính số suất sale còn lại
-            int availableSlots = limit - currentSold;
-            if (availableSlots < 0) availableSlots = 0;
-
+            int availableSlots = Math.max(0, limit - currentSold);
             boolean isSaleActive = (p.getDiscountPrice() != null && p.getDiscountPrice() > 0);
             
-            Double finalPriceForDetail = originalPrice; // Mặc định là giá gốc
-            int soldCountToAdd = 0; // Biến để cộng thêm vào discountSold
+            Double finalPriceForDetail = originalPrice;
+            int soldCountToAdd = 0;
 
             if (isSaleActive && availableSlots > 0) {
                 if (quantityBuy <= availableSlots) {
-                    // TRƯỜNG HỢP 1: Mua ít hơn hoặc bằng suất còn lại -> Hưởng trọn giá Sale
                     finalPriceForDetail = salePrice;
                     soldCountToAdd = quantityBuy;
                 } else {
-                    // TRƯỜNG HỢP 2: Mua lố suất Sale -> TRỘN GIÁ (Cực quan trọng)
-                    // Ví dụ: Còn 2 suất, mua 5 cái. -> 2 cái giá Sale, 3 cái giá Gốc
-                    int qtyCheap = availableSlots;
-                    int qtyExpensive = quantityBuy - availableSlots;
-                    
-                    double totalMoney = (qtyCheap * salePrice) + (qtyExpensive * originalPrice);
-                    
-                    // Tính ra đơn giá trung bình để lưu vào OrderDetail
-                    finalPriceForDetail = totalMoney / quantityBuy; 
-                    
-                    soldCountToAdd = qtyCheap; // Chỉ cộng thêm số lượng thực tế được sale
+                    // TRỘN GIÁ: (Suất rẻ * Giá sale + Suất đắt * Giá gốc) / Tổng mua
+                    double totalMoneyItem = (availableSlots * salePrice) + ((quantityBuy - availableSlots) * originalPrice);
+                    finalPriceForDetail = totalMoneyItem / quantityBuy; 
+                    soldCountToAdd = availableSlots;
                 }
-            } else {
-                // TRƯỜNG HỢP 3: Không có sale hoặc đã hết suất -> Giá Gốc
-                finalPriceForDetail = originalPrice;
             }
 
-            // ============================================================
-            // 3. CẬP NHẬT DATABASE (SỬA LỖI KHÔNG TĂNG SỐ ĐÃ BÁN)
-            // ============================================================
-            
-            // A. Trừ kho tổng (Stock)
+            // Cộng dồn vào tổng tiền đơn hàng (Sửa lỗi sai tiền 33 triệu)
+            grandTotalForOrder += (finalPriceForDetail * quantityBuy);
+
+            // 3. Cập nhật Database Product
             p.setStock(p.getStock() - quantityBuy);
-            
-            // B. Cộng số lượng đã bán Flash Sale (DiscountSold)
             if (soldCountToAdd > 0) {
                 p.setDiscountSold(currentSold + soldCountToAdd);
             }
-            
-            productRepository.save(p); // LƯU LẠI VÀO DB
+            productRepository.save(p);
 
-            // ============================================================
-            // 4. LƯU CHI TIẾT ĐƠN HÀNG
-            // ============================================================
+            // 4. Lưu OrderDetail
             OrderDetail detail = new OrderDetail();
             detail.setOrder(savedOrder);
             detail.setProduct(p);
             detail.setProductName(p.getName());
             detail.setQuantity(quantityBuy);
-            
-            // QUAN TRỌNG: Lưu giá đã tính toán (finalPriceForDetail) thay vì p.getDiscountPrice()
-            detail.setPrice(finalPriceForDetail); 
-            
-            // Nếu bạn có dùng BigDecimal cho totalPrice thì tính ở đây, còn không thì bỏ qua
-            // detail.setTotalPrice(BigDecimal.valueOf(finalPriceForDetail * quantityBuy)); 
-            
+            detail.setPrice(finalPriceForDetail);
             orderDetailRepository.save(detail);
         }
 
-        // D. Xóa sạch giỏ hàng của khách
+/*        // D. Cập nhật lại tổng tiền ĐƠN HÀNG chuẩn & gửi Email
+        savedOrder.setProductTotalPrice(String.valueOf(grandTotalForOrder));
+        orderRepository.save(savedOrder); // Lưu lại lần nữa với giá chuẩn
+
+        if (savedOrder.getEmailId() != null) {
+            emailService.sendOrderConfirmation(savedOrder.getEmailId(), String.valueOf(savedOrder.getId()), savedOrder.getProductTotalPrice());
+        }
+
+        cartRepository.deleteAll(cartItems);
+        return "redirect:/order-success";  */
+     // D. CẬP NHẬT ĐIỀU HƯỚNG THANH TOÁN
+        savedOrder.setProductTotalPrice(String.valueOf(grandTotalForOrder));
+        orderRepository.save(savedOrder); 
+
+        // Gửi email xong thì check điều hướng
+        if (savedOrder.getEmailId() != null) {
+            emailService.sendOrderConfirmation(savedOrder.getEmailId(), String.valueOf(savedOrder.getId()), savedOrder.getProductTotalPrice());
+        }
         cartRepository.deleteAll(cartItems);
 
-        // E. Chuyển hướng sang trang thông báo thành công
-        return "redirect:/order-success";
+        // 3. LOGIC RẼ NHÁNH THANH TOÁN Ở ĐÂY
+        if ("VIETQR".equals(paymentMode)) {
+            String qrUrl = paymentService.getVietQRUrl(savedOrder);
+            model.addAttribute("qrUrl", qrUrl);
+            model.addAttribute("order", savedOrder);
+            return "client/payment_vietqr"; // Phải dùng return trực tiếp, không redirect
+        } 
+        else if ("MOMO".equals(paymentMode)) {
+            return "redirect:/momo/pay/" + savedOrder.getId();
+        }
+
+        return "redirect:/order-success"; // Dành cho COD
     }
+    
+ 
     
     // 3. TRANG THÔNG BÁO THÀNH CÔNG
     @GetMapping("/order-success")
@@ -242,6 +285,20 @@ public class OrderController {
         model.addAttribute("details", details);
 
         return "client/order-details"; // Trả về file giao diện chi tiết
+    }
+    @GetMapping("/api/order/status/{id}")
+    @ResponseBody
+    public ResponseEntity<?> checkStatus(@PathVariable Integer id) {
+        Order order = orderRepository.findById(id).orElse(null);
+        if (order != null) {
+            // In ra màn hình console của Eclipse/STS để bạn xem nó có chạy vào đây không
+            System.out.println("Đang check đơn: " + id + " - Trạng thái: " + order.getPaymentStatus());
+            
+            return ResponseEntity.ok(java.util.Map.of(
+                "paymentStatus", order.getPaymentStatus()
+            ));
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @GetMapping("/download-invoice/{id}")

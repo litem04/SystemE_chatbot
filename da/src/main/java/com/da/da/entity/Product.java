@@ -4,6 +4,7 @@ package com.da.da.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Table(name = "tblproduct") // Map vào bảng tblproduct
@@ -18,11 +19,23 @@ public class Product {
 
     @Column(name = "create_date")
     private Date createDate;
+ 
     @Column(columnDefinition = "TEXT")
     private String description;
     @Column(length = 1000)
     private String image;
-
+    
+    
+ // Thêm dòng này vào trong class Product
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<ProductImage> productImages;
+    public List<ProductImage> getProductImages() {
+        return productImages;
+    }
+    public void setProductImages(List<ProductImage> productImages) {
+        this.productImages = productImages;
+    }
+    
     @Column(name = "image_name")
     private String imageName;
 

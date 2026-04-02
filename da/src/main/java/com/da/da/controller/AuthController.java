@@ -136,6 +136,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
 import java.util.Date;
@@ -147,6 +148,32 @@ public class AuthController {
     private CustomerRepository customerRepository;
 
     @GetMapping("/register")
+    public String showRegisterPage(Model model) {
+        // Không cần check session thủ công nữa, Spring tự lấy từ FlashAttributes bỏ vào Model
+        model.addAttribute("customer", new Customer());
+        return "client/customer-register";
+    }
+
+    @PostMapping("/register")
+    public String registerCustomer(@ModelAttribute Customer customer, RedirectAttributes ra) {
+        try {
+            Customer existingCustomer = customerRepository.findByEmail(customer.getEmail());
+            if (existingCustomer != null) {
+                // Dùng addFlashAttribute: Nó tự mất sau khi load xong trang, cực kỳ an toàn
+                ra.addFlashAttribute("failMessage", "Email này đã được đăng ký!");
+                return "redirect:/register";
+            }
+            customer.setAddedDate(new Date());
+            customerRepository.save(customer);
+            ra.addFlashAttribute("successMessage", "Đăng ký thành công! Vui lòng đăng nhập.");
+            return "redirect:/login"; 
+        } catch (Exception e) {
+            e.printStackTrace();
+            ra.addFlashAttribute("failMessage", "Lỗi: " + e.getMessage());
+            return "redirect:/register";
+        }
+    }
+/*     @GetMapping("/register")
     public String showRegisterPage(Model model, HttpSession session) {
        
     	if (session.getAttribute("fail-message") != null) {
@@ -189,7 +216,9 @@ public class AuthController {
             session.setAttribute("fail-message", "Lỗi: " + e.getMessage());
             return "redirect:/register";
         }
-    }
+    } */
+    
+    
 
     // --- 2. ĐĂNG NHẬP (Chỉ giữ lại 1 hàm hiện Form) ---
     // Spring Security sẽ tự xử lý POST tại /do-login, bạn không cần viết Controller cho nó

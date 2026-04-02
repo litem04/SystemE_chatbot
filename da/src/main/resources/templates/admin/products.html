@@ -9,22 +9,25 @@
     <h2>Danh sách sản phẩm</h2>
     <a href="/admin/dashboard" class="btn btn-secondary mb-3">Quay lại Dashboard</a>
     <a href="/admin/products/add" class="btn btn-success mb-3">Thêm mới +</a>
-
+	<div class="mb-3">
+	    <a th:href="@{/admin/products}" class="btn btn-secondary">Tất cả</a>
+	    <a th:href="@{/admin/products(category='Mobile')}" class="btn btn-primary">Điện thoại</a>
+	    <a th:href="@{/admin/products(category='Laptop')}" class="btn btn-primary">Laptop</a>
+	    <a th:href="@{/admin/products(category='Accessories')}" class="btn btn-primary">Phụ kiện</a>
+	</div>
     <table class="table table-bordered table-hover align-middle text-center">
         <thead class="table-dark">
         <tr>
-            <th>ID</th>
+           
             <th>Hình ảnh</th>
             <th>Tên sản phẩm</th>
             <th>Giá</th>
             <th>Danh mục</th>
             <th>Kho</th>  
-		  <!--    <th>Trạng thái</th>     -->  
-            <th>Hành động</th> </tr>
+	
         </thead>
 		<tbody>
 		<tr th:each="p : ${products}">
-		    <td th:text="${p.id}"></td>
 		    
 		    <td>
 		        <img th:src="${p.image != null and p.image.startsWith('http') ? p.image : '/product-images/' + (p.image != null ? p.image : 'no-image.png')}" 
@@ -46,10 +49,7 @@
 		        </span>
 		    </td>
 
-		    <td>
-		        <span th:if="${p.active == 'Active'}" class="badge bg-success">Đang bán</span>
-		        <span th:if="${p.active != 'Active'}" class="badge bg-secondary">Tạm ẩn</span>
-		    </td>
+		  
 
 		    <td>
 		        <a th:href="@{/admin/products/update/{id}(id=${p.id})}" class="btn btn-warning btn-sm">

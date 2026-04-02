@@ -15,7 +15,7 @@ public class EmailService {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             
-            message.setFrom("Shop Gear Admin <email_cua_ban@gmail.com>");
+            message.setFrom("Shop DuHV6 Admin <email_cua_ban@gmail.com>");
             message.setTo(toEmail);
             message.setSubject("Xác nhận đơn hàng #" + orderId);
             

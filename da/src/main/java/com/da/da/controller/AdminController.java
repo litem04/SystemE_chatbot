@@ -5,11 +5,15 @@ import com.da.da.entity.Customer;
 import com.da.da.entity.Order;
 import com.da.da.entity.OrderDetail;
 import com.da.da.entity.Product;
+import com.da.da.entity.ProductImage;
 import com.da.da.repository.CustomerRepository;
 import com.da.da.repository.OrderDetailRepository;
 import com.da.da.repository.OrderRepository;
+import com.da.da.repository.ProductImageRepository;
 import com.da.da.repository.ProductRepository;
+import com.da.da.repository.ProductReviewRepository;
 
+import jakarta.transaction.Transactional;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,10 +28,13 @@ import java.util.List;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.*;
-import java.util.stream.Collectors;
+
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.propertyeditors.CustomNumberEditor;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.WebDataBinder;
@@ -47,8 +54,11 @@ public class AdminController {
     @Autowired 
     private OrderRepository orderRepository;
     // productRepository đã có rồi
-
-
+    @Autowired
+    private ProductReviewRepository reviewRepository;
+    @Autowired private ProductImageRepository productImageRepository;
+    @Autowired
+    private SessionRegistry sessionRegistry;
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
@@ -62,9 +72,8 @@ public class AdminController {
         model.addAttribute("orderCount", orderRepository.count());
 
         List<Order> allOrders = orderRepository.findAll();
-        BigDecimal totalRevenue = BigDecimal.ZERO;     // Doanh thu thực tế (Đã giao)
-        BigDecimal shippingRevenue = BigDecimal.ZERO;  // Đang giao/Chờ xử lý
-
+        BigDecimal totalRevenue = BigDecimal.ZERO;    
+        BigDecimal shippingRevenue = BigDecimal.ZERO;  
         Map<String, Double> chartDataMap = new TreeMap<>();
 
         for (Order order : allOrders) {
@@ -75,8 +84,7 @@ public class AdminController {
             if (priceStr == null || priceStr.trim().isEmpty()) continue;
 
             try {
-                // FIX LỖI NHÂN 10: Chuyển chuỗi sang Double trước để xử lý dấu thập phân .0
-                // Sau đó mới đưa vào BigDecimal để tính toán chính xác
+               
                 double rawPrice = Double.parseDouble(priceStr);
                 BigDecimal price = BigDecimal.valueOf(rawPrice);
 
@@ -127,12 +135,27 @@ public class AdminController {
 
         return "admin/dashboard";
     }
-    // 2. Xem danh sách sản phẩm
+    // 2. Xem danh sách sản phẩm\
     @GetMapping("/products")
-    public String viewProducts(Model model) {
-        model.addAttribute("products", productRepository.findAll());
-        return "admin/products"; // Trả về file products.html
+    public String viewProducts(@RequestParam(value = "category", required = false) String category, Model model) {
+       // List<Product> listProducts;
+        List<Product> list = productRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
+        
+        // Kiểm tra nếu người dùng có chọn danh mục (Mobile, Laptop, Phụ kiện)
+        if (category != null && !category.isEmpty()) {
+            // Gọi hàm tìm kiếm theo danh mục từ Repository
+        	list = productRepository.findByProductCategory(category);
+            model.addAttribute("selectedCategory", category); // Gửi lại để biết đang lọc mục nào
+        } else {
+            // Nếu không chọn gì thì lấy tất cả như cũ
+        	list = productRepository.findAll();
+        }
+
+     //   model.addAttribute("products", listProducts);
+        model.addAttribute("products", list);
+        return "admin/products"; 
     }
+    
 
     // 3. Hiện form thêm sản phẩm mới
     @GetMapping("/products/add")
@@ -144,51 +167,74 @@ public class AdminController {
     // 4. Xử lý lưu sản phẩm mới
     @PostMapping("/products/add")
     public String addProduct(@ModelAttribute Product product, 
-                             @RequestParam("imageFile") MultipartFile multipartFile) throws IOException {
+                             @RequestParam("imageFiles") MultipartFile[] multipartFiles) throws IOException {
         
-        // 1. Kiểm tra xem người dùng có upload file không
-        String fileName = multipartFile.getOriginalFilename();
-        boolean isFileUploaded = fileName != null && !fileName.isEmpty();
+        // 1. Thiết lập các giá trị mặc định cho Product
+        if (product.getActive() == null) product.setActive("Active");
+        
+        // 2. LƯU VÀ ÉP GHI (Save and Flush) để chắc chắn Product có ID ngay lập tức
+        Product savedProduct = productRepository.saveAndFlush(product);
 
-        if (isFileUploaded) {
-            // === TRƯỜNG HỢP 1: CÓ CHỌN FILE ===
-            // Lưu tên file vào DB
-            product.setImage(fileName);
-            
-            // Lưu file vào thư mục máy tính
-            String uploadDir = "product-images/";
-            Path uploadPath = Paths.get(uploadDir);
-            if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
+        String uploadDir = "product-images/";
+        Path uploadPath = Paths.get(uploadDir);
+        if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
 
-            try (InputStream inputStream = multipartFile.getInputStream()) {
-                Path filePath = uploadPath.resolve(fileName);
-                Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+        boolean hasUpload = false;
+        String firstFileName = null;
+
+        for (MultipartFile file : multipartFiles) {
+            if (file != null && !file.getOriginalFilename().isEmpty()) {
+                hasUpload = true;
+                String fileName = file.getOriginalFilename();
+
+                // Lưu file vào thư mục
+                try (InputStream inputStream = file.getInputStream()) {
+                    Path filePath = uploadPath.resolve(fileName);
+                    Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+                }
+
+                // 3. Lưu vào bảng ProductImage (Album)
+                ProductImage pi = new ProductImage();
+                pi.setImageName(fileName);
+                pi.setProduct(savedProduct); // Bây giờ savedProduct chắc chắn đã có ID
+                productImageRepository.save(pi);
+
+                // Lưu lại tên ảnh đầu tiên để làm ảnh đại diện
+                if (firstFileName == null) {
+                    firstFileName = fileName;
+                }
             }
-        } else {
-            // === TRƯỜNG HỢP 2: KHÔNG CHỌN FILE ===
-            // Kiểm tra xem có nhập Link URL không?
-            // (Biến product.getImage() đã hứng giá trị từ ô input text 'Link ảnh' rồi)
-            
-            if (product.getImage() == null || product.getImage().trim().isEmpty()) {
-                // Nếu cả Link cũng trống nốt -> Set ảnh mặc định
-                product.setImage("https://via.placeholder.com/300"); 
-            }
-            // Nếu có Link thì giữ nguyên Link đó
         }
 
-        if (product.getActive() == null) product.setActive("Active");
-        productRepository.save(product);
+        // 4. Cập nhật ảnh đại diện cho Product
+        if (hasUpload) {
+            savedProduct.setImage(firstFileName);
+        } else if (savedProduct.getImage() == null || savedProduct.getImage().trim().isEmpty()) {
+            savedProduct.setImage("https://via.placeholder.com/300"); 
+        }
+
+        // Lưu lại Product lần cuối cùng với ảnh đại diện
+        productRepository.save(savedProduct);
         
         return "redirect:/admin/products";
     }
-    
-    // 5. Xóa sản phẩm
+  
     @GetMapping("/products/delete/{id}")
-    public String deleteProduct(@PathVariable Long id) {
-        productRepository.deleteById(id);
+    @Transactional // Đảm bảo nếu xóa review xong mà xóa product lỗi thì nó sẽ Rollback lại
+    public String deleteProduct(@PathVariable("id") Long id, RedirectAttributes ra) {
+        try {
+            // 1. Xóa các đánh giá liên quan đến sản phẩm này trước
+            reviewRepository.deleteByProductId(id);
+            
+            // 2. Bây giờ mới xóa sản phẩm
+            productRepository.deleteById(id);
+            
+            ra.addFlashAttribute("successMessage", "Đã xóa sản phẩm thành công!");
+        } catch (Exception e) {
+            ra.addFlashAttribute("errorMessage", "Lỗi: " + e.getMessage());
+        }
         return "redirect:/admin/products";
     }
-    
   
     
     @GetMapping("/products/update/{id}")
@@ -225,7 +271,45 @@ public class AdminController {
     }
 
     // 2. Xử lý lưu sau khi sửa (POST)
+    
     @PostMapping("/products/update")
+    public String updateProduct(@ModelAttribute Product product, 
+                                @RequestParam(value = "imageFile", required = false) MultipartFile multipartFile) throws IOException {
+        
+        // 1. Tìm sản phẩm cũ trong DB để lấy lại các thông tin không thay đổi
+        Product oldProduct = productRepository.findById(product.getId()).orElse(null);
+        
+        if (oldProduct == null) {
+            return "redirect:/admin/products?error=notfound";
+        }
+
+        // 2. Xử lý hình ảnh
+        if (multipartFile != null && !multipartFile.isEmpty()) {
+            // CÓ CHỌN ẢNH MỚI: Lưu file mới
+            String fileName = multipartFile.getOriginalFilename();
+            product.setImage(fileName);
+            
+            String uploadDir = "product-images/";
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
+            
+            try (InputStream inputStream = multipartFile.getInputStream()) {
+                Path filePath = uploadPath.resolve(fileName);
+                Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } else {
+            // KHÔNG CHỌN ẢNH MỚI: Giữ nguyên tên ảnh cũ từ DB
+            product.setImage(oldProduct.getImage());
+        }
+        
+        // 3. Giữ lại các thông tin cũ không có trong form (ví dụ: ngày tạo)
+        product.setCreateDate(oldProduct.getCreateDate());
+        
+        // 4. Lưu cập nhật
+        productRepository.save(product);
+        return "redirect:/admin/products";
+    }
+   /*  @PostMapping("/products/update")
     public String updateProduct(@ModelAttribute Product product, 
                                 @RequestParam("imageFile") MultipartFile multipartFile) throws IOException {
         
@@ -266,7 +350,7 @@ public class AdminController {
         DecimalFormat df = new DecimalFormat("#,###");
         // Đăng ký custom editor cho kiểu Double (hoặc kiểu dữ liệu bạn đang dùng)
         binder.registerCustomEditor(Double.class, new CustomNumberEditor(Double.class, df, true));
-    }
+    } */
     
     
     
@@ -288,7 +372,40 @@ public class AdminController {
     }
 
     // 2. XÓA KHÁCH HÀNG
+    
     @GetMapping("/customers/delete/{id}")
+    public String deleteCustomer(@PathVariable("id") Integer id, RedirectAttributes redirectAttributes) {
+        try {
+            // 1. Lấy thông tin khách hàng trước khi xóa để biết Email
+            Customer customer = customerRepository.findById(id).orElse(null);
+            
+            if (customer != null) {
+                String email = customer.getEmail();
+
+                // 2. Tìm và kick Session của người dùng này
+                List<Object> principals = sessionRegistry.getAllPrincipals();
+                for (Object principal : principals) {
+                    if (principal instanceof UserDetails) {
+                        UserDetails user = (UserDetails) principal;
+                        if (user.getUsername().equals(email)) {
+                            // Tìm thấy User, lấy tất cả session đang chạy
+                            sessionRegistry.getAllSessions(principal, false).forEach(sessionInfo -> {
+                                sessionInfo.expireNow(); // Đuổi ra ngay lập tức!
+                            });
+                        }
+                    }
+                }
+
+                // 3. Xóa trong DB
+                customerRepository.deleteById(id);
+                redirectAttributes.addFlashAttribute("successMessage", "Đã xóa khách hàng thành công!");
+            }
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Không thể xóa! Khách hàng này đã có đơn hàng.");
+        }
+        return "redirect:/admin/customers";
+    }
+   /* @GetMapping("/customers/delete/{id}")
     public String deleteCustomer(@PathVariable("id") Integer id, RedirectAttributes redirectAttributes) {
         try {
             customerRepository.deleteById(id);
@@ -297,7 +414,7 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("errorMessage", "Không thể xóa! Khách hàng này đã có đơn hàng trong hệ thống.");
         }
         return "redirect:/admin/customers";
-    }
+    }*/
     
 
 

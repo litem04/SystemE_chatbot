@@ -16,7 +16,7 @@
             <th>Khách hàng</th>
             <th>Ngày đặt</th>
             <th>Tổng tiền</th>
-            <th>Trạng thái</th>
+            <th>Phương thức</th> <th>Thanh toán</th>  <th>Trạng thái</th>
             <th>Hành động</th>
         </tr>
         </thead>
@@ -33,7 +33,18 @@
 			    th:text="${#numbers.formatDecimal(totalPrice, 0, 'POINT', 0, 'COMMA')} + ' đ'">
 			</td>
             <td>
+                <span th:if="${o.paymentMode == 'VIETQR'}" class="badge bg-info text-dark">VietQR</span>
+                <span th:if="${o.paymentMode == 'MOMO'}" class="badge bg-danger">Momo</span>
+                <span th:if="${o.paymentMode == 'COD' or o.paymentMode == null}" class="badge bg-secondary">COD</span>
+            </td>
+            <td>
+                <span th:if="${o.paymentStatus == 'Paid'}" class="badge bg-success">Đã trả tiền</span>
+                <span th:if="${o.paymentStatus != 'Paid'}" class="badge bg-danger">Chưa trả tiền</span>
+            </td>
+            <td>
+                <span th:if="${o.orderStatus == 'WAITING_FOR_PAYMENT'}" class="badge bg-dark">Chờ thanh toán</span>
                 <span th:if="${o.orderStatus == 'PENDING'}" class="badge bg-warning text-dark">Chờ xử lý</span>
+                <span th:if="${o.orderStatus == 'SHIPPED'}" class="badge bg-info text-dark">Đang giao</span>
                 <span th:if="${o.orderStatus == 'DELIVERED'}" class="badge bg-success">Đã giao</span>
                 <span th:if="${o.orderStatus == 'CANCELLED'}" class="badge bg-danger">Đã hủy</span>
             </td>

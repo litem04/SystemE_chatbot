@@ -25,12 +25,14 @@
                         <label>Địa chỉ giao hàng:</label>
                         <textarea name="address" class="form-control" rows="3" required th:text="${user.address}"></textarea>
                     </div>
-                    <div class="mb-3">
-                        <label>Phương thức thanh toán:</label>
-                        <select class="form-control">
-                            <option>Thanh toán khi nhận hàng (COD)</option>
-                        </select>
-                    </div>
+					<div class="mb-3">
+					    <label>Phương thức thanh toán:</label>
+					    <select class="form-control" name="paymentMode" id="paymentMode">
+					        <option value="COD">Thanh toán khi nhận hàng (COD)</option>
+					        <option value="VIETQR">Chuyển khoản VietQR (Ngân hàng)</option>
+					      
+					    </select>
+					</div>
                     
                     <button type="submit" class="btn btn-success w-100 py-2 mt-3 fw-bold">XÁC NHẬN ĐẶT HÀNG</button>
                     <a href="/cart" class="btn btn-outline-secondary w-100 mt-2">Quay lại giỏ hàng</a>
@@ -38,25 +40,33 @@
             </div>
         </div>
 
-        <div class="col-md-5">
-            <div class="card bg-light p-4">
-                <h4>Đơn hàng của bạn</h4>
-                <hr>
-                <ul class="list-group mb-3">
-                    <li class="list-group-item d-flex justify-content-between lh-sm" th:each="item : ${cartItems}">
-                        <div>
-                            <h6 class="my-0" th:text="${item.product.name}">Tên SP</h6>
-                            <small class="text-muted">x <span th:text="${item.quantity}"></span></small>
-                        </div>
-                        <span class="text-muted" th:text="${#numbers.formatDecimal(item.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">Price</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between bg-white">
-                        <span>Tổng cộng (VNĐ)</span>
-                        <strong class="text-danger" th:text="${#numbers.formatDecimal(grandTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">Total</strong>
-                    </li>
-                </ul>
-            </div>
-        </div>
+		<div class="col-md-5">
+		    <div class="card bg-light p-4">
+		        <h4>Đơn hàng của bạn</h4>
+		        <hr>
+		        <ul class="list-group mb-3">
+		            <li class="list-group-item d-flex justify-content-between lh-sm" th:each="item : ${cartItems}">
+		                <div th:if="${item.product != null}">
+		                    <h6 class="my-0" th:text="${item.product.name}">Tên sản phẩm</h6>
+		                    <small class="text-muted">Số lượng: <span th:text="${item.quantity}">0</span></small>
+		                </div>
+		                
+		                <span class="text-muted" 
+		                      th:text="${#numbers.formatDecimal(item.quantity * (item.product.discountPrice > 0 ? item.product.discountPrice : item.product.price), 0, 'COMMA', 0, 'POINT')} + ' đ'">
+		                    0 đ
+		                </span>
+		            </li>
+
+		            <li class="list-group-item d-flex justify-content-between bg-white">
+		                <span>Tổng cộng (VNĐ)</span>
+		                <strong class="text-danger" 
+		                        th:text="${#numbers.formatDecimal(grandTotal, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+		                    0 đ
+		                </strong>
+		            </li>
+		        </ul>
+		    </div>
+		</div>
     </div>
 </div>
 </body>

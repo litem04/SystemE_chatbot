@@ -7,6 +7,7 @@ import com.da.da.repository.CustomerRepository;
 import com.da.da.repository.ProductRepository;
 import com.da.da.repository.ProductReviewRepository;
 import com.da.da.service.CustomUserDetailsService;
+import com.da.da.service.ProductService;
 
 import java.security.Principal;
 import java.util.Date;
@@ -30,6 +31,8 @@ public class HomeController {
     private ProductReviewRepository productReviewRepository;
     @Autowired
     private CustomerRepository customerRepository;
+    @Autowired
+    private ProductService productService;
     @GetMapping("/")
     public String home(Model model) {
     
@@ -65,17 +68,45 @@ public class HomeController {
     @GetMapping("/product/{id}")
     public String viewProductDetails(@PathVariable Long id, Model model) {
         Product product = productRepository.findById(id).orElse(null);
+        
         if (product != null) {
+            // 1. Gửi thông tin sản phẩm
             model.addAttribute("product", product);
             
-            // [MỚI] Lấy danh sách review của sản phẩm này
+            // 2. Lấy danh sách review của sản phẩm này
             List<ProductReview> reviews = productReviewRepository.findByProductId(id);
             model.addAttribute("reviews", reviews);
 
+            // ============================================================
+            // 3. [CẬP NHẬT] Lấy danh sách phụ kiện ĐỘNG cho MỌI LOẠI SẢN PHẨM
+            // ============================================================
+            // Gọi hàm getDynamicAccessories (hàm này đã tự động check if-else Điện thoại/Laptop bên trong nó rồi)
+            List<Product> recommendedProducts = productService.getDynamicAccessories(product);
+            
+            // Nếu tìm thấy phụ kiện thì ném sang cho HTML hiển thị
+            if (recommendedProducts != null && !recommendedProducts.isEmpty()) {
+                model.addAttribute("recommendedProducts", recommendedProducts);
+            }
+
+            // Trả về giao diện
             return "client/product-detail"; 
         }
         return "redirect:/";
     }
+//    @GetMapping("/product/{id}")
+//    public String viewProductDetails(@PathVariable Long id, Model model) {
+//        Product product = productRepository.findById(id).orElse(null);
+//        if (product != null) {
+//            model.addAttribute("product", product);
+//            
+//            // [MỚI] Lấy danh sách review của sản phẩm này
+//            List<ProductReview> reviews = productReviewRepository.findByProductId(id);
+//            model.addAttribute("reviews", reviews);
+//
+//            return "client/product-detail"; 
+//        }
+//        return "redirect:/";
+//    }
 
     @PostMapping("/save-review")
     public String saveReview(@RequestParam("productId") Long productId,

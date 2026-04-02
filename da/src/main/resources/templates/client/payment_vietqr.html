@@ -1,0 +1,91 @@
+<style>
+    .payment-container {
+        max-width: 500px;
+        margin: 50px auto;
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        background: #fff;
+    }
+    .qr-wrapper {
+        position: relative;
+        display: inline-block;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 15px;
+        margin: 20px 0;
+    }
+    .qr-code {
+        width: 100%;
+        max-width: 250px;
+        border-radius: 10px;
+        transition: transform 0.3s ease;
+    }
+    .qr-code:hover {
+        transform: scale(1.05);
+    }
+    .order-info {
+        text-align: left;
+        background: #f0f7ff;
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 5px solid #007bff;
+    }
+    .status-waiting {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: #666;
+        font-style: italic;
+    }
+    /* Hiệu ứng loading đơn giản */
+    .spinner-border-sm { width: 1rem; height: 1rem; }
+</style>
+
+<div class="container">
+    <div class="payment-container text-center">
+        <h2 class="fw-bold mb-4">Thanh toán đơn hàng</h2>
+        
+        <div class="order-info mb-4">
+            <p class="mb-1">Mã đơn hàng: <strong class="text-primary" th:text="${order.id}">#123</strong></p>
+            <p class="mb-0">Số tiền: <strong class="text-danger" th:text="${#numbers.formatDecimal(order.productTotalPrice, 0, 'COMMA', 0, 'POINT')} + ' VND'">0 VND</strong></p>
+        </div>
+
+        <div class="qr-wrapper">
+            <img th:src="${qrUrl}" alt="Mã QR Thanh toán" class="qr-code">
+            <div class="mt-2 small text-muted">Sử dụng App Ngân hàng hoặc Ví điện tử để quét</div>
+        </div>
+        
+        <div class="mt-4">
+            <div id="payment-status" class="status-waiting mb-3">
+                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                <span>Đang chờ xác nhận thanh toán...</span>
+            </div>
+            
+           
+        </div>
+    </div>
+</div>
+<script th:inline="javascript">
+    // Lấy mã đơn hàng từ Model của Spring Boot truyền sang
+    const orderId = '[[${order.id}]]';
+
+    // Hàm tự động kiểm tra trạng thái đơn hàng
+    function checkPaymentStatus() {
+        // Gọi API lên server để hỏi xem đơn hàng đã trả tiền chưa
+        fetch('/api/order/status/' + orderId)
+            .then(response => response.json())
+            .then(data => {
+                // Nếu server trả về trạng thái là Paid (Đã trả tiền)
+                if (data.paymentStatus === 'Paid') {
+                    // Chuyển hướng người dùng sang trang thành công
+                    window.location.href = "/order-success";
+                }
+            })
+            .catch(error => console.error('Lỗi kiểm tra trạng thái:', error));
+    }
+
+    // Cứ mỗi 3 giây (3000ms) thì gọi hàm checkPaymentStatus 1 lần
+    const checkInterval = setInterval(checkPaymentStatus, 3000);
+</script>

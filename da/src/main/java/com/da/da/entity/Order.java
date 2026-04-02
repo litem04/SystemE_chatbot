@@ -62,7 +62,24 @@ public class Order {
 	 // Trước giờ bạn chỉ có status đơn hàng (Pending, Shipped...	), 
 	 // giờ cần thêm status tiền nong.
 	 private String paymentStatus; // Giá trị ví dụ: "Paid" (Đã trả), "Unpaid" (Chưa trả)
-	
+	 
+	 
+	 public String getPaymentStatus() {
+		return paymentStatus;
+	}
+
+	 public void setPaymentStatus(String paymentStatus) {
+		 this.paymentStatus = paymentStatus;
+	 }
+
+	 public String getTransactionId() {
+		 return transactionId;
+	 }
+
+	 public void setTransactionId(String transactionId) {
+		 this.transactionId = transactionId;
+	 }
+
 	 // 2. Mã giao dịch VNPay (Để sau này đối soát nếu cần)
 	 // Khi VNPay trả về, họ sẽ gửi kèm 1 mã giao dịch dài ngoằng, nên lưu lại.
 	 private String transactionId;

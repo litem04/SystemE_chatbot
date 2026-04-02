@@ -5,6 +5,7 @@ import com.da.da.entity.Customer;
 import com.da.da.entity.Product;
 import com.da.da.repository.CartRepository;
 import com.da.da.repository.ProductRepository;
+import com.da.da.service.CartService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -14,8 +15,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 public class CartController {
@@ -26,7 +29,8 @@ public class CartController {
     @Autowired
     private ProductRepository productRepository;
 
-    
+    @Autowired
+    private CartService cartService;
     
     // --- HÀM HỖ TRỢ TÍNH TOÁN GIÁ (Tránh viết lặp lại code) ---
     
@@ -126,30 +130,71 @@ public class CartController {
             }
         }
         return "redirect:/cart";
-    }
+    } 
 
     @GetMapping("/cart")
     public String viewCart(HttpSession session, Model model) {
         Customer user = (Customer) session.getAttribute("user");
         if (user == null) return "redirect:/login";
 
-        List<Cart> cartItems = cartRepository.findByCustomerId(Long.valueOf(user.getId()));
+        List<Cart> cartItems = cartRepository.findByCustomerIdOrderByIdAsc(Long.valueOf(user.getId()));
 
         double grandTotal = 0;
         for (Cart item : cartItems) {
-            try {
-                grandTotal += Double.parseDouble(item.getTotalPrice());
-            } catch (Exception e) {}
+            if (item.getProduct() != null) {
+                // SỬA Ở ĐÂY: Dùng chính hàm calculateMixedTotal bạn đã viết để tính tiền chuẩn 100%
+                double correctTotal = calculateMixedTotal(item.getProduct(), item.getQuantity());
+                
+                // Cộng dồn vào tổng hóa đơn
+                grandTotal += correctTotal;
+                
+                // (Tùy chọn) Cập nhật lại vào entity để lát đẩy ra HTML cho an toàn
+                item.setTotalPrice(String.valueOf(correctTotal)); 
+            }
         }
 
         model.addAttribute("cartItems", cartItems);
         model.addAttribute("grandTotal", grandTotal);
         return "client/cart";
     }
+//    @GetMapping("/cart")
+//    public String viewCart(HttpSession session, Model model) {
+//        Customer user = (Customer) session.getAttribute("user");
+//        if (user == null) return "redirect:/login";
+//
+//        List<Cart> cartItems = cartRepository.findByCustomerIdOrderByIdAsc(Long.valueOf(user.getId()));
+//
+//        double grandTotal = 0;
+//        for (Cart item : cartItems) {
+//            // Chỉ tính tiền nếu sản phẩm tồn tại và có giá
+//            if (item.getProduct() != null) {
+//                double price = (item.getProduct().getDiscountPrice() != null && item.getProduct().getDiscountPrice() > 0) 
+//                               ? item.getProduct().getDiscountPrice() 
+//                               : item.getProduct().getPrice();
+//                
+//                // Cộng dồn: Giá thực tế * Số lượng
+//                grandTotal += price * item.getQuantity();
+//            }
+//        }
+//
+//        model.addAttribute("cartItems", cartItems);
+//        model.addAttribute("grandTotal", grandTotal);
+//        return "client/cart";
+//    }
 
     @GetMapping("/cart/remove")
     public String removeItem(@RequestParam Long id) {
         cartRepository.deleteById(id);
+        return "redirect:/cart";
+    }
+    
+    @GetMapping("/cart/remove/{productId}") // Dùng dấu {productId} để khớp với link HTML
+    public String removeItem(@PathVariable Long productId, HttpSession session) {
+        Customer customer = (Customer) session.getAttribute("user");
+        if (customer != null) {
+            // Gọi repo để xóa đúng món hàng của User đó và Product đó
+            cartRepository.deleteByCustomerIdAndProductId(Long.valueOf(customer.getId()), productId);
+        }
         return "redirect:/cart";
     }
 
@@ -184,5 +229,15 @@ public class CartController {
         
         
     }
+    
+    
+    @GetMapping("/cart/update/{id}")
+    public String updateCart(@PathVariable("id") Long productId, @RequestParam("qty") int qty, HttpSession session) {
+        Customer customer = (Customer) session.getAttribute("user");
+        // Gọi hàm tính lại tiền và lưu vào DB
+        cartService.updateCartQuantity(customer.getEmail(), productId, qty);
+        return "redirect:/cart"; // Load lại trang để tiền nhảy chuẩn 100%
+    }
+
  
 }

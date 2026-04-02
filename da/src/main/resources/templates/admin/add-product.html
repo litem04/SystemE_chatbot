@@ -22,13 +22,13 @@
 	        </div>
 
 			<div class="mb-3">
-			    <label>Giá bán:</label>
+			    <label>Giá nhiễu:</label>
 			    <input type="text" name="price" 
 			           th:value="${product.price != null ? #numbers.formatDecimal(T(java.lang.Double).parseDouble(product.price), 0, 'COMMA', 0, 'POINT') : ''}" 
 			           class="form-control price-input"> </div>
 
 			<div class="mb-3">
-			    <label>Giá gốc (MRP):</label>
+			    <label>Giá bán:</label>
 			    <input type="text" name="mrpPrice" 
 			           th:value="${product.mrpPrice != null ? #numbers.formatDecimal(T(java.lang.Double).parseDouble(product.mrpPrice), 0, 'COMMA', 0, 'POINT') : ''}" 
 			           class="form-control price-input"> </div>
@@ -68,19 +68,23 @@
 			                    </div>
 			                </div>
 			            </div>
-	        <div class="mb-3">
-	            <label>Mô tả:</label>
-	            <textarea th:field="*{description}" class="form-control" rows="3"></textarea>
-	        </div>
+			<div class="form-group">
+			    <label>Mô tả sản phẩm:</label>
+			    <textarea name="description" class="form-control" rows="10" th:field="*{description}"></textarea>
+			</div>
 	        
-	        <div class="mb-3">
-	            <label>Ảnh sản phẩm:</label><br>
-	            <img class="mb-2" style="height: 100px;" 
-	                 th:if="${product.image != null}"
-	                 th:src="${product.image.startsWith('http') ? product.image : '/product-images/' + product.image}">
-	            
-	            <input type="file" name="imageFile" class="form-control" accept="image/*">
-	        </div>
+			<div class="mb-3">
+			    <label>Ảnh sản phẩm (Chọn nhiều ảnh, ảnh đầu tiên sẽ là ảnh chính):</label><br>
+			    
+			    <div th:if="${product.image != null}" class="mb-2">
+			        <p class="small text-muted">Ảnh chính hiện tại:</p>
+			        <img style="height: 100px; border: 1px dashed #ccc; padding: 5px;" 
+			             th:src="${product.image.startsWith('http') ? product.image : '/product-images/' + product.image}">
+			    </div>
+			    
+			    <input type="file" name="imageFiles" class="form-control" accept="image/*" multiple>
+			    <small class="text-secondary">Giữ phím Ctrl để chọn nhiều ảnh.</small>
+			</div>
 			
 			<input type="hidden" name="active" th:value="${product.active}">
 		

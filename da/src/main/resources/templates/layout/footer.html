@@ -1,7 +1,18 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<footer th:fragment="footer_fragment">
+<footer th:fragment="footer_fragment" class="bg-dark text-light pt-5 pb-3">
     <style>
+        .footer-link { color: #adb5bd; text-decoration: none; transition: 0.3s; }
+        .footer-link:hover { color: #0d6efd; padding-left: 5px; }
+        .social-icon { 
+            width: 35px; height: 35px; background: #444; 
+            display: inline-flex; align-items: center; justify-content: center; 
+            border-radius: 50%; color: white; margin-right: 10px; transition: 0.3s;
+        }
+        .social-icon:hover { background: #0d6efd; transform: translateY(-3px); }
+        hr.light { border-top: 1px solid #444; }
+        
+        /* Giữ nguyên CSS Chatbot của bạn */
         #chat-launcher {
             position: fixed; bottom: 20px; right: 20px; z-index: 1000;
             width: 60px; height: 60px; border-radius: 50%;
@@ -14,7 +25,7 @@
             width: 350px; height: 500px; background: white;
             border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.15);
             display: none; flex-direction: column; overflow: hidden;
-            border: 1px solid #eee;
+            border: 1px solid #eee; color: #333; /* Reset color cho chat */
         }
         .chat-header {
             background: #0d6efd; color: white; padding: 15px;
@@ -24,17 +35,75 @@
             flex: 1; overflow-y: auto; padding: 15px;
             background: #f8f9fa; display: flex; flex-direction: column; gap: 10px;
         }
-        .msg-item { max-width: 80%; padding: 8px 12px; border-radius: 15px; font-size: 14px; }
+        .msg-item { max-width: 80%; padding: 8px 12px; border-radius: 15px; font-size: 14px; word-wrap: break-word;}
         .msg-user { align-self: flex-end; background: #0d6efd; color: white; }
         .msg-bot { align-self: flex-start; background: #e9ecef; color: #333; }
         .chat-footer { padding: 10px; border-top: 1px solid #eee; background: white; }
-        .suggest-container { padding: 5px 10px; display: flex; flex-wrap: wrap; gap: 5px; }
+        .suggest-container { padding: 5px 10px; display: flex; flex-wrap: wrap; gap: 5px; background: white; }
         .suggest-btn { 
             font-size: 12px; cursor: pointer; border: 1px solid #0d6efd; 
             color: #0d6efd; padding: 3px 8px; border-radius: 10px; transition: 0.2s;
         }
         .suggest-btn:hover { background: #0d6efd; color: white; }
     </style>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-4 col-md-6 mb-4">
+                <h4 class="fw-bold text-uppercase mb-4">TECH<span class="text-primary">GEAR</span></h4>
+                <p class="text-secondary">Chuyên cung cấp các thiết bị công nghệ, laptop, linh kiện PC và phụ kiện chính hãng hàng đầu Việt Nam.</p>
+                <div class="mt-4">
+                    <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="social-icon"><i class="fab fa-youtube"></i></a>
+                    <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="social-icon"><i class="fab fa-tiktok"></i></a>
+                </div>
+            </div>
+
+            <div class="col-lg-2 col-md-6 mb-4">
+                <h6 class="text-uppercase fw-bold mb-4">Chính sách</h6>
+                <ul class="list-unstyled">
+                    <li class="mb-2"><a href="#" class="footer-link small">Chính sách bảo hành</a></li>
+                    <li class="mb-2"><a href="#" class="footer-link small">Chính sách đổi trả</a></li>
+                    <li class="mb-2"><a href="#" class="footer-link small">Giao hàng & Lắp đặt</a></li>
+                    <li class="mb-2"><a href="#" class="footer-link small">Bảo mật thông tin</a></li>
+                </ul>
+            </div>
+
+            <div class="col-lg-2 col-md-6 mb-4">
+                <h6 class="text-uppercase fw-bold mb-4">Hỗ trợ</h6>
+                <ul class="list-unstyled">
+                    <li class="mb-2"><a href="#" class="footer-link small">Hướng dẫn mua hàng</a></li>
+                    <li class="mb-2"><a href="#" class="footer-link small">Tra cứu đơn hàng</a></li>
+                    <li class="mb-2"><a href="#" class="footer-link small">Trung tâm bảo hành</a></li>
+                    <li class="mb-2"><a href="#" class="footer-link small">Tuyển dụng</a></li>
+                </ul>
+            </div>
+
+            <div class="col-lg-4 col-md-6 mb-4">
+                <h6 class="text-uppercase fw-bold mb-4">Liên hệ</h6>
+                <p class="small text-secondary"><i class="fas fa-home me-2"></i> 123 Đường ABC, Quận 1, TP. Hồ Chí Minh</p>
+                <p class="small text-secondary"><i class="fas fa-envelope me-2"></i> support@techgear.vn</p>
+                <p class="small text-secondary"><i class="fas fa-phone me-2"></i> + 01 234 567 88</p>
+                <p class="small text-secondary"><i class="fas fa-print me-2"></i> + 01 234 567 89</p>
+            </div>
+        </div>
+
+        <hr class="light">
+
+        <div class="row align-items-center">
+            <div class="col-md-7 col-lg-8">
+                <p class="small text-secondary">© 2026 Copyright: <a href="#" class="text-primary text-decoration-none fw-bold">TechGear.vn</a></p>
+            </div>
+            <div class="col-md-5 col-lg-4">
+                <div class="text-md-end">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" width="40" class="me-2" alt="paypal">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" width="40" class="me-2" alt="visa">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" width="40" alt="mastercard">
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div id="chat-bot">
         <button id="chat-launcher" onclick="toggleChat()">
@@ -52,8 +121,7 @@
                 </div>
             </div>
             
-            <div id="messages">
-                </div>
+            <div id="messages"></div>
 
             <div class="suggest-container">
                 <div class="suggest-btn" onclick="sendMsg('Tìm Laptop gaming dưới 20tr')">Laptop Gaming < 20tr</div>
@@ -70,36 +138,49 @@
     </div>
 
     <script>
-        const STORAGE_KEY = 'techgear_chat_history';
+		const currentUserId = "[[${session.user != null ? session.user.id : 'guest'}]]";
+		const STORAGE_KEY = 'techgear_chat_history_' + currentUserId;
+        const STATE_KEY = 'techgear_chat_open_state_' + currentUserId; 
 
-        // 1. Khi vừa load trang (bất kỳ trang nào), lấy lịch sử ra hiển thị
         document.addEventListener("DOMContentLoaded", function() {
             const history = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-            const area = document.getElementById('messages');
-            
             if (history.length === 0) {
-                // Tin nhắn chào mặc định nếu chưa có lịch sử
                 appendMessage('bot', "Chào bồ! Mình là trợ lý TechGear. Bạn cần tìm cấu hình máy hay check giá sản phẩm nào nè?", false);
             } else {
                 history.forEach(item => {
                     appendMessage(item.role, item.text, false);
                 });
             }
+
+            const isChatOpen = localStorage.getItem(STATE_KEY) === 'true';
+            const windowChat = document.getElementById('chat-window');
+            if (isChatOpen) {
+                windowChat.style.display = 'flex';
+                const area = document.getElementById('messages');
+                area.scrollTop = area.scrollHeight;
+            }
         });
 
         function toggleChat() {
             const windowChat = document.getElementById('chat-window');
-            windowChat.style.display = (windowChat.style.display === 'flex') ? 'none' : 'flex';
+            const isCurrentlyOpen = windowChat.style.display === 'flex';
+            if (isCurrentlyOpen) {
+                windowChat.style.display = 'none';
+                localStorage.setItem(STATE_KEY, 'false');
+            } else {
+                windowChat.style.display = 'flex';
+                localStorage.setItem(STATE_KEY, 'true');
+                const area = document.getElementById('messages');
+                area.scrollTop = area.scrollHeight;
+            }
         }
 
-        // 2. Hàm lưu tin nhắn vào LocalStorage
         function saveToLocal(role, text) {
             let history = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
             history.push({ role, text });
             localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
         }
 
-        // 3. Hàm xóa lịch sử
         function clearChat() {
             if(confirm("Bồ có muốn xóa hết tin nhắn cũ không?")) {
                 localStorage.removeItem(STORAGE_KEY);
@@ -108,54 +189,78 @@
             }
         }
 
-        function appendMessage(role, text, shouldSave) {
-            const area = document.getElementById('messages');
-            const msgClass = (role === 'user') ? 'msg-user' : 'msg-bot';
-            area.innerHTML += `<div class="msg-item ${msgClass}">${text}</div>`;
-            area.scrollTop = area.scrollHeight;
-            
-            if (shouldSave) {
-                saveToLocal(role, text);
-            }
-        }
+		function appendMessage(role, text, shouldSave) {
+		    const area = document.getElementById('messages');
+		    const msgClass = (role === 'user') ? 'msg-user' : 'msg-bot';
+		    const msgDiv = document.createElement('div');
+		    msgDiv.className = `msg-item ${msgClass}`;
+		    
+		    // 1. SỬA LẠI REGEX: Chấp nhận có chữ bên trong dấu ngoặc vuông [ ]
+		    const imgRegex = /\!\[(.*?)\]\s*\((.*?)\)/s; 
+		    const match = text.match(imgRegex);
 
+		    if (role === 'bot' && match) {
+		        const imageUrl = match[2].trim(); // match[2] là link ảnh nằm trong ngoặc tròn ( )
+		        
+		        // Xóa cái tag Markdown đi để lấy phần text còn lại
+		        let cleanText = text.replace(match[0], '').trim(); 
+		        
+		        // Thay thế dấu xuống dòng bằng thẻ <br> để xuống hàng đẹp đẽ
+		        cleanText = cleanText.replace(/\n/g, '<br>');
+		        
+		        // Hiển thị text và chèn thẻ <img>
+		        msgDiv.innerHTML = `${cleanText}<br><img src="${imageUrl}" style="max-width: 100%; border-radius: 10px; margin-top: 10px;" alt="Mã QR Thanh toán">`;
+		    } else {
+		        // Nếu không có ảnh thì hiển thị text bình thường và giữ nguyên xuống dòng
+		        msgDiv.innerHTML = text.replace(/\n/g, '<br>');
+		    }
+		    
+		    area.appendChild(msgDiv);
+		    area.scrollTop = area.scrollHeight;
+		    
+		    // Chỉ lưu vào LocalStorage nếu được yêu cầu
+		    if (shouldSave) { saveToLocal(role, text); }
+		}
         async function sendMsg(text) {
             let input = document.getElementById('userInput');
             let msg = text || input.value;
-            if(!msg) return;
+            if(!msg.trim()) return;
             
-            // Hiện tin nhắn người dùng & lưu local
             appendMessage('user', msg, true);
-            input.value = '';
+            if(!text) input.value = '';
 
-            // Hiện trạng thái chờ
-            let loadingId = 'loading-' + Date.now();
-            document.getElementById('messages').innerHTML += `<div class="msg-item msg-bot" id="${loadingId}">...</div>`;
+            const area = document.getElementById('messages');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'msg-item msg-bot';
+            loadingDiv.innerText = '...';
+            area.appendChild(loadingDiv);
+            area.scrollTop = area.scrollHeight;
 
-            try {
-                const res = await fetch('/api/ai/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: msg
-                });
-                const reply = await res.text();
-                
-                // Xóa cái "..." và thay bằng câu trả lời thật, sau đó lưu local
-                const loadingEl = document.getElementById(loadingId);
-                loadingEl.innerText = reply;
-                loadingEl.removeAttribute('id'); // Xóa ID để tránh trùng lặp
-                
-                saveToLocal('bot', reply);
-
-                // NẾU AI BÁO THÀNH CÔNG THÊM GIỎ HÀNG -> RELOAD TRANG ĐỂ NHẢY GIÁ
-                if (reply.includes("thành công") || reply.includes("vào giỏ hàng")) {
-                    setTimeout(() => { window.location.reload(); }, 1500);
-                }
-
-            } catch (err) {
-                document.getElementById(loadingId).innerText = "Lỗi kết nối rồi bồ ơi!";
-            }
-            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+			try {
+	            const res = await fetch('/api/ai/chat', {
+	                method: 'POST',
+	                headers: { 'Content-Type': 'text/plain' },
+	                body: msg
+	            });
+	            const reply = await res.text();
+	            
+	            // 1. XÓA dòng chữ "..." đang loading đi cho đỡ rác
+	            loadingDiv.remove();
+	            
+	            // 2. GỌI HÀM appendMessage để nó tự bóc tách text và chèn thẻ <img>
+	            appendMessage('bot', reply, true);
+	            
+	            // 3. Tự cuộn khung chat xuống dưới cùng để thấy ảnh
+	            area.scrollTop = area.scrollHeight;
+	            
+	            if (reply.includes("thành công") || reply.includes("vào giỏ hàng")) {
+	                setTimeout(() => { window.location.reload(); }, 1500);
+	            }
+	        } catch (err) {
+	            // Nếu lỗi thì đổi chữ "..." thành thông báo lỗi
+	            loadingDiv.innerText = "Lỗi kết nối rồi bồ ơi!";
+	            area.scrollTop = area.scrollHeight;
+	        }
         }
     </script>
 </footer>

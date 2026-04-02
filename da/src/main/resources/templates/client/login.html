@@ -1,5 +1,19 @@
-<form action="/do-login" method="post">
-    <input type="text" name="username" placeholder="Email (Admin hoặc Khách)">
-    <input type="password" name="password" placeholder="Mật khẩu">
+<form th:action="@{/do-login}" method="post"> <div th:if="${param.registered}" class="alert alert-success" 
+         style="color: #155724; background-color: #d4edda; border-color: #c3e6cb; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+        Đăng ký thành công! Vui lòng đăng nhập.
+    </div>
+
+    <div th:if="${param.error}" class="alert alert-danger" 
+         style="color: #721c24; background-color: #f8d7da; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+        Sai email hoặc mật khẩu, vui lòng thử lại!
+    </div>
+
+    <div th:if="${param.logout}" class="alert alert-info" 
+         style="color: #0c5460; background-color: #d1ecf1; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+        Bạn đã đăng xuất thành công.
+    </div>
+
+    <input type="text" name="username" placeholder="Email (Admin hoặc Khách)" required>
+    <input type="password" name="password" placeholder="Mật khẩu" required>
     <button type="submit">Đăng nhập</button>
 </form>

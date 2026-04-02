@@ -2,17 +2,53 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:16  # Dùng bản 16 cho mới
+    image: postgres:16
     container_name: techgear_postgres_container
     restart: always
     environment:
       - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password # Mật khẩu database (nhớ cái này)
-      - POSTGRES_DB=techgear_db        # Tên database tự tạo khi khởi động
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=techgear_db
     ports:
-      - "5432:5432"  # Map cổng 5432 của docker ra 5432 của máy thật
+      - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data # Lưu dữ liệu ra ngoài để tắt docker không bị mất
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - techgear-network
+
+  vector-db:
+    image: pgvector/pgvector:pg16
+    container_name: postgres_pgvector
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=chatbot_rag
+    ports:
+      - "5433:5432"
+    volumes:
+      - vector_db_data:/var/lib/postgresql/data
+    networks:
+      - techgear-network
+
+  app:
+    build: .
+    container_name: my_springboot_app
+    restart: always
+    ports:
+      - "8081:8081"
+    depends_on:
+      - db
+      - vector-db
+    volumes:
+      - ./product-images:/app/product-images
+    networks:
+      - techgear-network
 
 volumes:
   db_data:
+  vector_db_data:
+
+networks:
+  techgear-network:
+    driver: bridge
