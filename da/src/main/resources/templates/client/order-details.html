@@ -93,11 +93,11 @@
 
             <div class="text-end mt-3">
                 <h4 th:if="${order.paymentStatus == 'Paid'}">
-                    Đã thanh toán: <span class="text-success" th:text="${#numbers.formatDecimal(T(java.lang.Double).parseDouble(order.productTotalPrice), 0, 'POINT', 0, 'COMMA')} + ' đ'"></span>
+                    Đã thanh toán: <span class="text-success" th:text="${order.productTotalPrice != null ? #numbers.formatDecimal(order.productTotalPrice, 0, 'POINT', 0, 'COMMA') + ' đ' : '0 đ'}"></span>
                 </h4>
                 
                 <h4 th:if="${order.paymentStatus != 'Paid'}">
-                    Tổng thanh toán: <span class="text-danger" th:text="${#numbers.formatDecimal(T(java.lang.Double).parseDouble(order.productTotalPrice), 0, 'POINT', 0, 'COMMA')} + ' đ'"></span>
+                    Tổng thanh toán: <span class="text-danger" th:text="${order.productTotalPrice != null ? #numbers.formatDecimal(order.productTotalPrice, 0, 'POINT', 0, 'COMMA') + ' đ' : '0 đ'}"></span>
                 </h4>
             </div>
             

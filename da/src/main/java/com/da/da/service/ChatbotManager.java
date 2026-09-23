@@ -1,58 +1,35 @@
 package com.da.da.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ChatbotManager {
 
-    @Autowired
-    @Qualifier("geminiAssistant")
-    private DigitalStoreAssistant geminiAssistant;
+    private static final Logger log = LoggerFactory.getLogger(ChatbotManager.class);
 
-    @Autowired
-    @Qualifier("ollamaAssistant")
-    private DigitalStoreAssistant ollamaAssistant;
+    private final DigitalStoreAssistant geminiAssistant;
+    private final DigitalStoreAssistant ollamaAssistant;
 
-//    public String processChat(String message) {
-//
-//
-//        try {
-//            // 1. Thử dùng Gemini trước
-//            return geminiAssistant.chat(message);
-//        } catch (Exception e) {
-//            // 2. Nếu Gemini lỗi (429, 500, hoặc lỗi mạng...)
-//            System.err.println("Gemini gặp sự cố: " + e.getMessage());
-//            
-//            // Kiểm tra xem có phải lỗi "Hết hạn mức" (429) không để log cho rõ
-//            if (e.getMessage().contains("429")) {
-//                System.out.println("Lý do: Hết quota Gemini. Đang chuyển sang Ollama...");
-//            }
-//
-//            try {
-//                // 3. GỌI OLLAMA Ở ĐÂY (Bỏ comment và thực thi)
-//                String response = ollamaAssistant.chat(message);
-//                return response + "\n\n*(Phản hồi từ Ollama dự phòng)*";
-//            } catch (Exception ollamaEx) {
-//                // 4. Nếu đen đủi là cả Ollama cũng chưa bật hoặc lỗi
-//                return "Cả Gemini và hệ thống dự phòng đều không khả dụng. Lỗi: " + ollamaEx.getMessage();
-//            }
-//        }
-//    }
-    
+    public ChatbotManager(@Qualifier("geminiAssistant") DigitalStoreAssistant geminiAssistant,
+                          @Qualifier("ollamaAssistant") DigitalStoreAssistant ollamaAssistant) {
+        this.geminiAssistant = geminiAssistant;
+        this.ollamaAssistant = ollamaAssistant;
+    }
+
     public String processChat(String memoryId, String message) {
         try {
-            // Truyền memoryId vào hàm chat
             return geminiAssistant.chat(memoryId, message);
         } catch (Exception e) {
-            // Nếu Gemini lỗi, dùng Ollama nhưng vẫn dùng chung memoryId để nhớ mạch cũ
+            log.warn("Gemini gặp sự cố ({}), tự động chuyển sang mô hình Ollama dự phòng...", e.getMessage());
             try {
-                return ollamaAssistant.chat(memoryId, message) + "\n*(Dự phòng từ Ollama)*";
+                return ollamaAssistant.chat(memoryId, message) + "\n\n*(Phản hồi từ mô hình dự phòng)*";
             } catch (Exception ex) {
-                return "Lỗi hệ thống: " + ex.getMessage();
+                log.error("Cả hai mô hình AI Gemini và Ollama đều không khả dụng: ", ex);
+                return "Hệ thống tư vấn AI hiện đang bận. Bạn vui lòng thử lại sau ít phút hoặc để lại tin nhắn.";
             }
         }
     }
-		
 }

@@ -182,10 +182,10 @@
         }
 
         function clearChat() {
-            if(confirm("Bồ có muốn xóa hết tin nhắn cũ không?")) {
+            if(confirm("Bạn có muốn xóa hết lịch sử trò chuyện không?")) {
                 localStorage.removeItem(STORAGE_KEY);
                 document.getElementById('messages').innerHTML = '';
-                appendMessage('bot', "Đã xóa lịch sử. Bồ cần hỏi gì mới không?", true);
+                appendMessage('bot', "Đã xóa lịch sử. Bạn cần mình hỗ trợ thông tin gì nữa không?", true);
             }
         }
 
@@ -258,7 +258,7 @@
 	            }
 	        } catch (err) {
 	            // Nếu lỗi thì đổi chữ "..." thành thông báo lỗi
-	            loadingDiv.innerText = "Lỗi kết nối rồi bồ ơi!";
+	            loadingDiv.innerText = "Lỗi kết nối đến máy chủ, vui lòng thử lại!";
 	            area.scrollTop = area.scrollHeight;
 	        }
         }

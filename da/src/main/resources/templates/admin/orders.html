@@ -29,8 +29,7 @@
             </td>
             <td th:text="${o.orderDate}"></td>
 			<td class="text-danger fw-bold" 
-			    th:with="totalPrice=${T(java.lang.Double).parseDouble(o.productTotalPrice)}"
-			    th:text="${#numbers.formatDecimal(totalPrice, 0, 'POINT', 0, 'COMMA')} + ' đ'">
+			    th:text="${o.productTotalPrice != null ? #numbers.formatDecimal(o.productTotalPrice, 0, 'POINT', 0, 'COMMA') + ' đ' : '0 đ'}">
 			</td>
             <td>
                 <span th:if="${o.paymentMode == 'VIETQR'}" class="badge bg-info text-dark">VietQR</span>

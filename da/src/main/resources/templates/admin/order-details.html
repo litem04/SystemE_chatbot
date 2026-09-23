@@ -98,8 +98,7 @@
 			<h4 class="text-end text-danger">
 			    Tổng tiền: 
 			    <span th:if="${order.productTotalPrice != null}"
-			          th:with="total=${T(java.lang.Double).parseDouble(order.productTotalPrice)}"
-			          th:text="${#numbers.formatDecimal(total, 0, 'POINT', 0, 'COMMA')} + ' đ'">
+			          th:text="${#numbers.formatDecimal(order.productTotalPrice, 0, 'POINT', 0, 'COMMA')} + ' đ'">
 			    </span>
 			    <span th:unless="${order.productTotalPrice != null}">0 đ</span>
 			</h4>
