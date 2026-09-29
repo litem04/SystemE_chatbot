@@ -53,7 +53,7 @@ public class UserOrderTools {
             return "Bạn vui lòng đăng nhập vào tài khoản để lấy mã QR thanh toán cho đơn hàng của mình.";
         }
 
-        Optional<Order> unpaidOrderOpt = orderRepository.findFirstByEmailIdAndPaymentStatusOrderByIdDesc(emailId, "Unpaid");
+        Optional<Order> unpaidOrderOpt = orderRepository.findFirstByEmailIdAndPaymentStatusOrderByIdDesc(emailId, com.da.da.entity.enums.PaymentStatus.UNPAID);
         if (unpaidOrderOpt.isEmpty()) {
             return "Bạn không có đơn hàng nào đang chờ thanh toán.";
         }

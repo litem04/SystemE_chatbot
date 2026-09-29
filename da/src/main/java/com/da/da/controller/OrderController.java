@@ -7,17 +7,22 @@ import com.da.da.entity.OrderDetail;
 import com.da.da.repository.CartRepository;
 import com.da.da.repository.OrderDetailRepository;
 import com.da.da.repository.OrderRepository;
+import com.da.da.dto.PlaceOrderRequest;
 import com.da.da.service.CartService;
 import com.da.da.service.OrderService;
 import com.da.da.service.PaymentService;
 import com.da.da.service.PdfService;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -81,24 +86,28 @@ public class OrderController {
     }
 
     @PostMapping("/place-order")
-    public String placeOrder(@RequestParam String address,
-                             @RequestParam String phone,
-                             @RequestParam String paymentMode,
+    public String placeOrder(@Valid @ModelAttribute PlaceOrderRequest request,
+                             BindingResult bindingResult,
                              HttpSession session,
                              Model model,
                              RedirectAttributes ra) {
         Customer user = (Customer) session.getAttribute("user");
         if (user == null) return "redirect:/login";
 
-        try {
-            Order savedOrder = orderService.placeOrder(user, address, phone, paymentMode);
+        if (bindingResult.hasErrors()) {
+            ra.addFlashAttribute("errorMessage", bindingResult.getAllErrors().get(0).getDefaultMessage());
+            return "redirect:/checkout";
+        }
 
-            if ("VIETQR".equalsIgnoreCase(paymentMode)) {
+        try {
+            Order savedOrder = orderService.placeOrder(user, request);
+
+            if ("VIETQR".equalsIgnoreCase(request.getPaymentMode())) {
                 String qrUrl = paymentService.getVietQRUrl(savedOrder);
                 model.addAttribute("qrUrl", qrUrl);
                 model.addAttribute("order", savedOrder);
                 return "client/payment_vietqr";
-            } else if ("MOMO".equalsIgnoreCase(paymentMode)) {
+            } else if ("MOMO".equalsIgnoreCase(request.getPaymentMode())) {
                 return "redirect:/momo/pay/" + savedOrder.getId();
             }
 
@@ -116,12 +125,16 @@ public class OrderController {
     }
 
     @GetMapping("/my-orders")
-    public String myOrders(HttpSession session, Model model) {
+    public String myOrders(@RequestParam(defaultValue = "0") int page,
+                           @RequestParam(defaultValue = "10") int size,
+                           HttpSession session,
+                           Model model) {
         Customer user = (Customer) session.getAttribute("user");
         if (user == null) return "redirect:/login";
 
-        List<Order> myOrders = orderRepository.findByEmailIdOrderByIdDesc(user.getEmail());
-        model.addAttribute("orders", myOrders);
+        Page<Order> myOrders = orderRepository.findByEmailIdOrderByIdDesc(user.getEmail(), PageRequest.of(page, size));
+        model.addAttribute("orders", myOrders.getContent());
+        model.addAttribute("page", myOrders);
         return "client/my-orders";
     }
 
@@ -142,14 +155,64 @@ public class OrderController {
         return "client/order-details";
     }
 
+    @GetMapping("/order/payment/vietqr/{id}")
+    public String viewVietQrPayment(@PathVariable Integer id, HttpSession session, Model model, RedirectAttributes ra) {
+        Customer user = (Customer) session.getAttribute("user");
+        if (user == null) return "redirect:/login";
+
+        Order order = orderRepository.findById(id).orElse(null);
+        if (order == null || !user.getEmail().equalsIgnoreCase(order.getEmailId())) {
+            ra.addFlashAttribute("errorMessage", "Không tìm thấy đơn hàng!");
+            return "redirect:/my-orders";
+        }
+
+        if (order.isPaid()) {
+            ra.addFlashAttribute("successMessage", "Đơn hàng #" + id + " đã được thanh toán thành công!");
+            return "redirect:/my-orders/view/" + id;
+        }
+
+        if (order.getOrderStatus() == com.da.da.entity.enums.OrderStatus.CANCELLED) {
+            ra.addFlashAttribute("errorMessage", "Đơn hàng #" + id + " đã bị hủy.");
+            return "redirect:/my-orders/view/" + id;
+        }
+
+        String qrUrl = paymentService.getVietQRUrl(order);
+        model.addAttribute("qrUrl", qrUrl);
+        model.addAttribute("order", order);
+        return "client/payment_vietqr";
+    }
+
+    @PostMapping("/my-orders/cancel/{id}")
+    public String cancelOrder(@PathVariable Integer id, HttpSession session, RedirectAttributes ra) {
+        Customer user = (Customer) session.getAttribute("user");
+        if (user == null) return "redirect:/login";
+
+        try {
+            orderService.cancelOrderByCustomer(id, user.getEmail());
+            ra.addFlashAttribute("successMessage", "Đã hủy đơn hàng #" + id + " thành công!");
+        } catch (Exception e) {
+            ra.addFlashAttribute("errorMessage", e.getMessage());
+        }
+
+        return "redirect:/my-orders";
+    }
+
     @GetMapping("/api/order/status/{id}")
     @ResponseBody
-    public ResponseEntity<?> checkStatus(@PathVariable Integer id) {
-        Order order = orderRepository.findById(id).orElse(null);
-        if (order != null) {
-            return ResponseEntity.ok(Map.of("paymentStatus", order.getPaymentStatus()));
+    public ResponseEntity<?> checkStatus(@PathVariable Integer id, HttpSession session) {
+        Customer user = (Customer) session.getAttribute("user");
+        if (user == null) {
+            return ResponseEntity.status(401).build();
         }
-        return ResponseEntity.notFound().build();
+        try {
+            com.da.da.entity.enums.PaymentStatus status = orderService.getPaymentStatusForCustomer(id, user.getEmail());
+            if (status != null) {
+                return ResponseEntity.ok(Map.of("paymentStatus", status));
+            }
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).build();
+        }
     }
 
     @GetMapping("/download-invoice/{id}")

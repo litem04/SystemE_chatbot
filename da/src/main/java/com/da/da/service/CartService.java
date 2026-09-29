@@ -79,11 +79,11 @@ public class CartService {
             return "Rất tiếc, sản phẩm " + product.getName() + " hiện đã hết hàng.";
         }
 
-        BigDecimal unitPrice = product.getEffectivePrice();
+        int safeQuantity = Math.max(1, Math.min(quantity, 99));
         Cart existingCart = cartRepository.findByCustomerIdAndProductId(customerId, productId);
 
         if (existingCart != null) {
-            int newQuantity = existingCart.getQuantity() + quantity;
+            int newQuantity = Math.min(existingCart.getQuantity() + safeQuantity, 99);
             if (newQuantity > product.getStock()) {
                 newQuantity = product.getStock();
             }
@@ -92,7 +92,7 @@ public class CartService {
             cartRepository.save(existingCart);
             return "Đã cập nhật số lượng cho " + product.getName() + " trong giỏ hàng!";
         } else {
-            int actualQuantity = Math.min(quantity, product.getStock());
+            int actualQuantity = Math.min(safeQuantity, product.getStock());
             Cart newCart = Cart.builder()
                     .customerId(customerId)
                     .productId(productId)
@@ -108,6 +108,54 @@ public class CartService {
         }
     }
 
+    public record CartViewDto(List<Cart> cartItems, BigDecimal grandTotal) {}
+
+    @Transactional
+    public CartViewDto getCartView(Long customerId) {
+        if (customerId == null) {
+            return new CartViewDto(List.of(), BigDecimal.ZERO);
+        }
+        List<Cart> cartItems = cartRepository.findByCustomerIdOrderByIdAsc(customerId);
+        BigDecimal grandTotal = BigDecimal.ZERO;
+
+        for (Cart item : cartItems) {
+            if (item.getProduct() != null) {
+                BigDecimal correctTotal = calculateMixedTotal(item.getProduct(), item.getQuantity() != null ? item.getQuantity() : 1);
+                grandTotal = grandTotal.add(correctTotal);
+                item.setTotalPrice(correctTotal);
+            }
+        }
+        return new CartViewDto(cartItems, grandTotal);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void removeItem(Long customerId, Long productId) {
+        if (customerId != null && productId != null) {
+            cartRepository.deleteByCustomerIdAndProductId(customerId, productId);
+        }
+    }
+
+    // Xóa sản phẩm theo Cart ID có xác thực sở hữu (Chống IDOR hoàn toàn)
+    @Transactional(rollbackFor = Exception.class)
+    public boolean removeItemById(Long customerId, Long cartItemId) {
+        if (customerId == null || cartItemId == null) return false;
+        Cart cartItem = cartRepository.findById(cartItemId).orElse(null);
+        if (cartItem != null && customerId.equals(cartItem.getCustomerId())) {
+            cartRepository.delete(cartItem);
+            return true;
+        }
+        return false;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void updateCartItemQuantity(Long customerId, Long cartItemId, int quantity) {
+        if (customerId == null || cartItemId == null) return;
+        Cart cartItem = cartRepository.findById(cartItemId).orElse(null);
+        if (cartItem != null && customerId.equals(cartItem.getCustomerId()) && cartItem.getProduct() != null) {
+            updateCartQuantityByCart(cartItem, quantity);
+        }
+    }
+
     @Transactional(rollbackFor = Exception.class)
     public void updateCartQuantity(String email, Long productId, int newQuantity) {
         Customer customer = customerRepository.findByEmail(email);
@@ -115,15 +163,20 @@ public class CartService {
 
         Cart cart = cartRepository.findByCustomerIdAndProductId(Long.valueOf(customer.getId()), productId);
         if (cart != null && cart.getProduct() != null) {
-            if (newQuantity <= 0) {
-                cartRepository.delete(cart);
-            } else {
-                int stock = cart.getProduct().getStock() != null ? cart.getProduct().getStock() : 0;
-                int validQuantity = Math.min(newQuantity, stock);
-                cart.setQuantity(validQuantity);
-                cart.setTotalPrice(calculateMixedTotal(cart.getProduct(), validQuantity));
-                cartRepository.save(cart);
-            }
+            updateCartQuantityByCart(cart, newQuantity);
+        }
+    }
+
+    private void updateCartQuantityByCart(Cart cart, int newQuantity) {
+        if (newQuantity <= 0) {
+            cartRepository.delete(cart);
+        } else {
+            int boundedQuantity = Math.min(newQuantity, 99);
+            int stock = cart.getProduct().getStock() != null ? cart.getProduct().getStock() : 0;
+            int validQuantity = Math.min(boundedQuantity, stock);
+            cart.setQuantity(validQuantity);
+            cart.setTotalPrice(calculateMixedTotal(cart.getProduct(), validQuantity));
+            cartRepository.save(cart);
         }
     }
 

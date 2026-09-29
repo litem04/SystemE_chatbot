@@ -17,7 +17,7 @@ import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
+import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,15 +40,44 @@ public class LangChainConfig {
     @Value("${ollama.model-name:qwen2.5:3b}")
     private String ollamaModelName;
 
+    @Value("${vector.db.host:localhost}")
+    private String vectorDbHost;
+
+    @Value("${vector.db.port:5433}")
+    private Integer vectorDbPort;
+
+    @Value("${vector.db.name:chatbot_rag}")
+    private String vectorDbName;
+
+    @Value("${vector.db.user:postgres}")
+    private String vectorDbUser;
+
+    @Value("${vector.db.password:postgres}")
+    private String vectorDbPassword;
+
     @Bean
     EmbeddingModel embeddingModel() {
         return new AllMiniLmL6V2EmbeddingModel();
     }
 
+    @Value("${app.embedding.in-memory:false}")
+    private boolean useInMemoryStore;
+
     @Bean
     @ConditionalOnMissingBean
     EmbeddingStore<TextSegment> embeddingStore() {
-        return new InMemoryEmbeddingStore<>();
+        if (useInMemoryStore) {
+            return new dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore<>();
+        }
+        return PgVectorEmbeddingStore.builder()
+                .host(vectorDbHost)
+                .port(vectorDbPort)
+                .database(vectorDbName)
+                .user(vectorDbUser)
+                .password(vectorDbPassword)
+                .table("product_embeddings")
+                .dimension(384)
+                .build();
     }
 
     @Bean
@@ -67,8 +96,11 @@ public class LangChainConfig {
 
     @Bean("geminiModel")
     ChatLanguageModel geminiModel() {
+        String key = (geminiApiKey != null && !geminiApiKey.isBlank())
+                ? geminiApiKey
+                : "AIzaSy_DEV_DUMMY_KEY_FOR_LOCAL_STARTUP";
         return GoogleAiGeminiChatModel.builder()
-                .apiKey(geminiApiKey)
+                .apiKey(key)
                 .modelName(geminiModelName)
                 .build();
     }

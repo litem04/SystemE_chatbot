@@ -22,15 +22,22 @@ public class IngestionService {
     }
 
     public void syncProductsToVectorDb() {
-        productRepository.findAll().forEach(p -> {
-            String content = String.format("Sản phẩm: %s. Loại: %s. Mô tả: %s",
-                    p.getName(),
-                    p.getProductCategory(),
-                    p.getDescription());
+        int page = 0;
+        int size = 100;
+        org.springframework.data.domain.Page<com.da.da.entity.Product> productPage;
+        do {
+            productPage = productRepository.findAll(org.springframework.data.domain.PageRequest.of(page, size));
+            productPage.getContent().forEach(p -> {
+                String content = String.format("Sản phẩm: %s. Loại: %s. Mô tả: %s",
+                        p.getName(),
+                        p.getProductCategory(),
+                        p.getDescription());
 
-            TextSegment segment = TextSegment.from(content);
-            embeddingStore.add(embeddingModel.embed(segment).content(), segment);
-        });
+                TextSegment segment = TextSegment.from(content);
+                embeddingStore.add(embeddingModel.embed(segment).content(), segment);
+            });
+            page++;
+        } while (productPage.hasNext());
     }
 
     public void ingestStorePolicy(String policyContent) {

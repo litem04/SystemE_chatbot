@@ -17,27 +17,15 @@
 </head>
 <body class="bg-light">
 
-<nav class="navbar navbar-dark bg-dark p-3">
-    <a class="navbar-brand fw-bold" href="#">DuHV6 ADMIN</a>
-    <div>
-        <span class="text-white me-3">Xin chào, Quản trị viên</span>
-        <a href="/logout" class="btn btn-outline-danger btn-sm">Đăng xuất</a>
-    </div>
-</nav>
+<div th:replace="~{admin/fragments/admin-header :: header('dashboard')}"></div>
 
-<div class="container-fluid mt-4">
-    <div class="row">
-        <div class="col-md-2">
-            <div class="list-group">
-                <a href="/admin/dashboard" class="list-group-item list-group-item-action active"><i class="fas fa-home me-2"></i> Tổng quan</a>
-                <a href="/admin/products" class="list-group-item list-group-item-action"><i class="fas fa-box me-2"></i> Sản phẩm</a>
-                <a href="/admin/orders" class="list-group-item list-group-item-action"><i class="fas fa-shopping-cart me-2"></i> Đơn hàng</a>
-                <a href="/admin/customers" class="list-group-item list-group-item-action"><i class="fas fa-users me-2"></i> Khách hàng</a>
-            </div>
+<div class="container-fluid px-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1"><i class="fas fa-tachometer-alt text-primary me-2"></i>Tổng quan hệ thống</h3>
+            <span class="text-muted small">Báo cáo doanh thu thực tế, hàng đang giao và các chỉ số kinh doanh</span>
         </div>
-
-        <div class="col-md-10">
-            <h2 class="mb-4">Tổng quan hệ thống</h2>
+    </div>
             
 			<div class="row g-3">
 			                
@@ -100,17 +88,10 @@
 		           </div>
 		       </div>
 		   </div>
-
-        </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<div class="card-body">
-    
-    <canvas id="revenueChart" style="max-height: 400px;"></canvas>
-</div>
 
 <script th:inline="javascript">
     document.addEventListener("DOMContentLoaded", function () {

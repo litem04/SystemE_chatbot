@@ -1,57 +1,56 @@
 package com.da.da.controller;
 
+import com.da.da.dto.RegisterRequest;
 import com.da.da.entity.Customer;
-import com.da.da.repository.CustomerRepository;
+import com.da.da.service.AuthService;
 import com.da.da.service.CustomUserDetailsService;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
-import java.util.Date;
 
 @Controller
 public class AuthController {
 
-    private final CustomerRepository customerRepository;
+    private final AuthService authService;
     private final CustomUserDetailsService customerService;
-    private final PasswordEncoder passwordEncoder;
 
-    public AuthController(CustomerRepository customerRepository,
-                          CustomUserDetailsService customerService,
-                          PasswordEncoder passwordEncoder) {
-        this.customerRepository = customerRepository;
+    public AuthController(AuthService authService,
+                          CustomUserDetailsService customerService) {
+        this.authService = authService;
         this.customerService = customerService;
-        this.passwordEncoder = passwordEncoder;
     }
 
     @GetMapping("/register")
     public String showRegisterPage(Model model) {
-        model.addAttribute("customer", new Customer());
+        model.addAttribute("customer", new RegisterRequest());
         return "client/customer-register";
     }
 
     @PostMapping("/register")
-    public String registerCustomer(@ModelAttribute Customer customer, RedirectAttributes ra) {
+    public String registerCustomer(@Valid @ModelAttribute("customer") RegisterRequest request,
+                                   BindingResult bindingResult,
+                                   RedirectAttributes ra) {
+        if (bindingResult.hasErrors()) {
+            String errorMsg = bindingResult.getAllErrors().get(0).getDefaultMessage();
+            ra.addFlashAttribute("failMessage", errorMsg);
+            return "redirect:/register";
+        }
+
         try {
-            Customer existingCustomer = customerRepository.findByEmail(customer.getEmail());
-            if (existingCustomer != null) {
-                ra.addFlashAttribute("failMessage", "Email này đã được đăng ký!");
-                return "redirect:/register";
-            }
-
-            // Băm mật khẩu an toàn bằng BCrypt
-            customer.setPassword(passwordEncoder.encode(customer.getPassword()));
-            customer.setAddedDate(new Date());
-            customerRepository.save(customer);
-
+            authService.register(request);
             ra.addFlashAttribute("successMessage", "Đăng ký thành công! Vui lòng đăng nhập.");
             return "redirect:/login";
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("failMessage", e.getMessage());
+            return "redirect:/register";
         } catch (Exception e) {
             ra.addFlashAttribute("failMessage", "Lỗi đăng ký: " + e.getMessage());
             return "redirect:/register";
@@ -63,11 +62,7 @@ public class AuthController {
         return "client/customer-login";
     }
 
-    @GetMapping("/logout")
-    public String logout(HttpSession session) {
-        session.invalidate();
-        return "redirect:/";
-    }
+
 
     @GetMapping("/profile")
     public String showProfile(Model model, Principal principal) {
@@ -78,7 +73,19 @@ public class AuthController {
         String email = principal.getName();
         Customer customer = customerService.findByEmail(email);
 
-        model.addAttribute("customer", customer);
+        Customer safeCustomer = Customer.builder()
+                .id(customer.getId())
+                .email(customer.getEmail())
+                .name(customer.getName())
+                .phone(customer.getPhone())
+                .address(customer.getAddress())
+                .gender(customer.getGender())
+                .pinCode(customer.getPinCode())
+                .addedDate(customer.getAddedDate())
+                .password(null)
+                .build();
+
+        model.addAttribute("customer", safeCustomer);
         model.addAttribute("title", "Hồ sơ cá nhân");
         return "client/profile";
     }

@@ -7,13 +7,15 @@
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark py-2">
     <div class="container">
-        <a class="navbar-brand" href="/">DuHV6</a>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link" href="/my-orders">Quay lại lịch sử</a></li>
-            </ul>
+        <a class="navbar-brand fw-bold" href="/"><i class="fas fa-bolt text-primary me-2"></i>TECHGEAR</a>
+        <div class="d-flex align-items-center">
+            <a th:if="${session.admin != null}" href="/admin/dashboard" class="btn btn-warning btn-sm text-dark fw-bold me-2">
+                <i class="fas fa-shield-alt me-1"></i> Quay lại Admin
+            </a>
+            <a href="/my-orders" class="btn btn-outline-light btn-sm me-2"><i class="fas fa-list me-1"></i> Lịch sử đơn hàng</a>
+            <a href="/" class="btn btn-outline-light btn-sm"><i class="fas fa-store me-1"></i> Trang chủ</a>
         </div>
     </div>
 </nav>
@@ -24,17 +26,68 @@
             <h4 class="mb-0">Đơn hàng #<span th:text="${order.id}"></span></h4>
             
             <div>
-                <span th:if="${order.orderStatus == 'WAITING_FOR_PAYMENT'}" class="badge bg-dark">Chờ thanh toán</span>
-                <span th:if="${order.orderStatus == 'PENDING'}" class="badge bg-warning text-dark">Chờ xử lý</span>
-                <span th:if="${order.orderStatus == 'PROCESSING'}" class="badge bg-warning text-dark">Đang xử lý</span>
-                <span th:if="${order.orderStatus == 'SHIPPED'}" class="badge bg-info text-dark">Đang giao hàng</span>
-                <span th:if="${order.orderStatus == 'DELIVERED'}" class="badge bg-light text-success">Đã giao thành công</span>
-                <span th:if="${order.orderStatus == 'CANCELLED'}" class="badge bg-danger">Đã hủy</span>
+                <span th:if="${order.orderStatusName == 'WAITING_FOR_PAYMENT'}" class="badge bg-dark">Chờ thanh toán</span>
+                <span th:if="${order.orderStatusName == 'PENDING'}" class="badge bg-warning text-dark">Chờ xử lý</span>
+                <span th:if="${order.orderStatusName == 'PROCESSING'}" class="badge bg-warning text-dark">Đang xử lý</span>
+                <span th:if="${order.orderStatusName == 'SHIPPED'}" class="badge bg-info text-dark">Đang giao hàng</span>
+                <span th:if="${order.orderStatusName == 'DELIVERED'}" class="badge bg-light text-success">Đã giao thành công</span>
+                <span th:if="${order.orderStatusName == 'CANCELLED'}" class="badge bg-danger">Đã hủy</span>
             </div>
         </div>
         
         <div class="card-body">
             
+            <!-- Timeline tiến độ đơn hàng trực quan -->
+            <div class="card p-3 mb-4 bg-light border-0 shadow-sm">
+                <h6 class="fw-bold text-secondary mb-3"><i class="fas fa-route text-primary me-2"></i>Tiến độ thực hiện đơn hàng:</h6>
+                <div class="d-flex justify-content-between text-center position-relative">
+                    <!-- Bước 1: Tiếp nhận -->
+                    <div class="flex-fill">
+                        <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center text-white bg-success mb-2 shadow-sm" style="width: 40px; height: 40px;">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <small class="fw-bold d-block">1. Đã đặt hàng</small>
+                        <span class="text-muted small">Đã tiếp nhận</span>
+                    </div>
+
+                    <!-- Bước 2: Thanh toán -->
+                    <div class="flex-fill">
+                        <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center text-white mb-2 shadow-sm" 
+                             th:classappend="${order.isPaid() or order.paymentStatusName == 'PAID' or order.orderStatusName == 'PROCESSING' or order.orderStatusName == 'SHIPPED' or order.orderStatusName == 'DELIVERED'} ? 'bg-success' : (order.orderStatusName == 'CANCELLED' ? 'bg-secondary' : 'bg-warning text-dark')"
+                             style="width: 40px; height: 40px;">
+                            <i class="fas" th:classappend="${order.isPaid() or order.paymentStatusName == 'PAID'} ? 'fa-check' : 'fa-credit-card'"></i>
+                        </div>
+                        <small class="fw-bold d-block" th:text="${order.paymentModeName == 'VIETQR'} ? '2. Thanh toán VietQR' : '2. Xác nhận COD'"></small>
+                        <span class="small" th:classappend="${order.isPaid() or order.paymentStatusName == 'PAID'} ? 'text-success fw-bold' : 'text-danger fw-bold'"
+                              th:text="${order.isPaid() or order.paymentStatusName == 'PAID'} ? 'Đã nhận tiền' : (${order.paymentModeName == 'VIETQR'} ? 'Chờ quét QR' : 'Chờ giao thu tiền')"></span>
+                    </div>
+
+                    <!-- Bước 3: Đóng gói & Vận chuyển -->
+                    <div class="flex-fill">
+                        <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center text-white mb-2 shadow-sm" 
+                             th:classappend="${order.orderStatusName == 'SHIPPED' or order.orderStatusName == 'DELIVERED'} ? 'bg-success' : (${order.orderStatusName == 'PROCESSING'} ? 'bg-info' : 'bg-secondary')"
+                             style="width: 40px; height: 40px;">
+                            <i class="fas fa-truck"></i>
+                        </div>
+                        <small class="fw-bold d-block">3. Vận chuyển</small>
+                        <span class="small" th:classappend="${order.orderStatusName == 'SHIPPED'} ? 'text-primary fw-bold' : 'text-muted'"
+                              th:text="${order.orderStatusName == 'SHIPPED'} ? 'Đang giao hàng' : (${order.orderStatusName == 'DELIVERED'} ? 'Đã giao' : (${order.orderStatusName == 'PROCESSING'} ? 'Đang đóng gói' : 'Chờ chuẩn bị'))"></span>
+                    </div>
+
+                    <!-- Bước 4: Hoàn tất -->
+                    <div class="flex-fill">
+                        <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center text-white mb-2 shadow-sm" 
+                             th:classappend="${order.orderStatusName == 'DELIVERED'} ? 'bg-success' : 'bg-secondary'"
+                             style="width: 40px; height: 40px;">
+                            <i class="fas fa-box-open"></i>
+                        </div>
+                        <small class="fw-bold d-block">4. Hoàn tất</small>
+                        <span class="small" th:classappend="${order.orderStatusName == 'DELIVERED'} ? 'text-success fw-bold' : 'text-muted'"
+                              th:text="${order.orderStatusName == 'DELIVERED'} ? 'Giao thành công' : 'Chờ nhận hàng'"></span>
+                    </div>
+                </div>
+            </div>
+
             <div class="row mb-4">
                 <div class="col-md-4">
                     <h5><i class="fas fa-map-marker-alt text-primary"></i> Địa chỉ nhận hàng</h5>
@@ -47,13 +100,13 @@
                     <h5><i class="fas fa-credit-card text-success"></i> Thông tin thanh toán</h5>
                     <p class="mb-1 mt-3">
                         Hình thức: 
-                        <span th:if="${order.paymentMode == 'VIETQR'}" class="badge bg-info text-dark">Chuyển khoản VietQR</span>
-                        <span th:if="${order.paymentMode != 'VIETQR'}" class="badge bg-secondary">Tiền mặt (COD)</span>
+                        <span th:if="${order.paymentModeName == 'VIETQR'}" class="badge bg-info text-dark">Chuyển khoản VietQR</span>
+                        <span th:if="${order.paymentModeName != 'VIETQR'}" class="badge bg-secondary">Tiền mặt (COD)</span>
                     </p>
                     <p class="mb-1 mt-2">
                         Trạng thái: 
-                        <span th:if="${order.paymentStatus == 'Paid'}" class="badge bg-success">Đã thanh toán</span>
-                        <span th:if="${order.paymentStatus != 'Paid'}" class="badge bg-danger">Chưa thanh toán</span>
+                        <span th:if="${order.isPaid() or order.paymentStatusName == 'PAID'}" class="badge bg-success">Đã thanh toán</span>
+                        <span th:if="${!order.isPaid() and order.paymentStatusName != 'PAID'}" class="badge bg-danger">Chưa thanh toán</span>
                     </p>
                 </div>
                 
@@ -92,21 +145,58 @@
             </table>
 
             <div class="text-end mt-3">
-                <h4 th:if="${order.paymentStatus == 'Paid'}">
+                <h4 th:if="${order.isPaid() or order.paymentStatusName == 'PAID'}">
                     Đã thanh toán: <span class="text-success" th:text="${order.productTotalPrice != null ? #numbers.formatDecimal(order.productTotalPrice, 0, 'POINT', 0, 'COMMA') + ' đ' : '0 đ'}"></span>
                 </h4>
                 
-                <h4 th:if="${order.paymentStatus != 'Paid'}">
+                <h4 th:if="${!order.isPaid() and order.paymentStatusName != 'PAID'}">
                     Tổng thanh toán: <span class="text-danger" th:text="${order.productTotalPrice != null ? #numbers.formatDecimal(order.productTotalPrice, 0, 'POINT', 0, 'COMMA') + ' đ' : '0 đ'}"></span>
                 </h4>
             </div>
             
-            <div class="mt-4 text-center">
-                <a href="/" class="btn btn-outline-primary">Tiếp tục mua sắm</a>
+            <div class="mt-4">
+                <!-- Thông báo hướng dẫn trạng thái -->
+                <div th:if="${order.paymentModeName == 'VIETQR' and !order.isPaid() and order.orderStatusName == 'WAITING_FOR_PAYMENT'}" 
+                     class="alert alert-warning text-center">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    <strong>Đơn hàng đang chờ thanh toán!</strong> Vui lòng quét mã QR để chuyển khoản. Sau khi thanh toán thành công, TechGear sẽ xác nhận và giao hàng ngay.
+                </div>
+                <div th:if="${order.paymentModeName == 'COD' and order.orderStatusName != 'DELIVERED' and order.orderStatusName != 'CANCELLED'}" 
+                     class="alert alert-info text-center">
+                    <i class="fas fa-truck me-1"></i>
+                    <strong>Thanh toán khi nhận hàng (COD):</strong> Đơn hàng sẽ được nhân viên chuẩn bị và giao đến bạn. Bạn sẽ thanh toán tiền mặt cho shipper khi nhận hàng.
+                </div>
+                <div th:if="${order.orderStatusName == 'CANCELLED'}" class="alert alert-secondary text-center">
+                    <i class="fas fa-ban me-1"></i> Đơn hàng này đã bị hủy. Tồn kho đã được hoàn lại.
+                </div>
+
+                <div class="text-center mt-3">
+                    <a th:if="${order.paymentModeName == 'VIETQR' and !order.isPaid() and order.orderStatusName == 'WAITING_FOR_PAYMENT'}"
+                       th:href="@{'/order/payment/vietqr/' + ${order.id}}" class="btn btn-success me-2">
+                        <i class="fas fa-qrcode me-1"></i> Quét mã QR thanh toán ngay
+                    </a>
+
+                    <form th:if="${order.orderStatusName == 'WAITING_FOR_PAYMENT' or order.orderStatusName == 'PENDING'}"
+                          th:action="@{'/my-orders/cancel/' + ${order.id}}" method="post" style="display:inline;"
+                          onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn hàng này?');">
+                        <button type="submit" class="btn btn-outline-danger me-2">
+                            <i class="fas fa-times me-1"></i> Hủy đơn hàng
+                        </button>
+                    </form>
+
+                    <a href="/my-orders" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-box-open me-1"></i> Đơn hàng của tôi
+                    </a>
+                    <a href="/" class="btn btn-outline-primary">
+                        <i class="fas fa-store me-1"></i> Tiếp tục mua sắm
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<div th:replace="~{layout/footer :: footer_fragment}"></div>
 
 </body>
 </html>

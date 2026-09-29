@@ -3,9 +3,8 @@ package com.da.da.controller;
 import com.da.da.entity.Customer;
 import com.da.da.entity.Product;
 import com.da.da.entity.ProductReview;
-import com.da.da.repository.CustomerRepository;
-import com.da.da.repository.ProductRepository;
 import com.da.da.repository.ProductReviewRepository;
+import com.da.da.service.CustomUserDetailsService;
 import com.da.da.service.ProductService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,30 +20,27 @@ import java.util.List;
 @Controller
 public class HomeController {
 
-    private final ProductRepository productRepository;
     private final ProductReviewRepository productReviewRepository;
-    private final CustomerRepository customerRepository;
+    private final CustomUserDetailsService customerService;
     private final ProductService productService;
 
-    public HomeController(ProductRepository productRepository,
-                          ProductReviewRepository productReviewRepository,
-                          CustomerRepository customerRepository,
+    public HomeController(ProductReviewRepository productReviewRepository,
+                          CustomUserDetailsService customerService,
                           ProductService productService) {
-        this.productRepository = productRepository;
         this.productReviewRepository = productReviewRepository;
-        this.customerRepository = customerRepository;
+        this.customerService = customerService;
         this.productService = productService;
     }
 
     @GetMapping("/")
     public String home(Model model) {
-        model.addAttribute("products", productRepository.findAll());
+        model.addAttribute("products", productService.findAll());
         return "client/index";
     }
 
     @GetMapping("/search")
     public String searchProduct(@RequestParam String keyword, Model model) {
-        List<Product> searchResults = productRepository.findByNameContainingIgnoreCase(keyword);
+        List<Product> searchResults = productService.searchByName(keyword);
         model.addAttribute("products", searchResults);
         model.addAttribute("keyword", keyword);
         return "client/index";
@@ -52,7 +48,7 @@ public class HomeController {
 
     @GetMapping("/category")
     public String filterByCategory(@RequestParam String name, Model model) {
-        List<Product> categoryResults = productRepository.findByProductCategory(name);
+        List<Product> categoryResults = productService.findByCategory(name);
         model.addAttribute("products", categoryResults);
         model.addAttribute("categoryName", name);
         return "client/index";
@@ -60,7 +56,7 @@ public class HomeController {
 
     @GetMapping("/product/{id}")
     public String viewProductDetails(@PathVariable Long id, Model model) {
-        Product product = productRepository.findById(id).orElse(null);
+        Product product = productService.findById(id);
         if (product != null) {
             model.addAttribute("product", product);
             List<ProductReview> reviews = productReviewRepository.findByProductId(id);
@@ -85,9 +81,9 @@ public class HomeController {
             return "redirect:/login";
         }
 
-        Product product = productRepository.findById(productId).orElse(null);
+        Product product = productService.findById(productId);
         String email = principal.getName();
-        Customer customer = customerRepository.findByEmail(email);
+        Customer customer = customerService.findByEmail(email);
 
         if (product != null && customer != null) {
             ProductReview review = new ProductReview();

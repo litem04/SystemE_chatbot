@@ -76,9 +76,11 @@
 					</td>
 
 					<td>
-					    <input type="number" th:value="${item.quantity}" 
-					           class="form-control" style="width: 70px;" min="1"
-					           th:onchange="|window.location.href='/cart/update/' + ${item.product.id} + '?qty=' + this.value|">
+					    <form th:action="@{'/cart/update/' + ${item.product.id}}" method="post" class="d-inline">
+					        <input type="number" name="qty" th:value="${item.quantity}" 
+					               class="form-control" style="width: 70px;" min="1"
+					               onchange="this.form.submit()">
+					    </form>
 					</td>
 
 					<td class="line-total text-danger fw-bold" 
@@ -86,9 +88,11 @@
 					</td>
 			        
 			        <td>
-			            <a th:href="@{'/cart/remove/' + ${item.product.id}}" class="btn btn-danger btn-sm">
-			                <i class="fa fa-trash"></i> Xóa
-			            </a>
+			            <form th:action="@{'/cart/remove/' + ${item.product.id}}" method="post" class="d-inline">
+			                <button type="submit" class="btn btn-danger btn-sm">
+			                    <i class="fa fa-trash"></i> Xóa
+			                </button>
+			            </form>
 			        </td>
 			    </tr>
 			</tbody>
@@ -114,46 +118,5 @@
 </div>
 <div th:replace="~{layout/footer :: footer_fragment}"></div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-$(document).ready(function() {
-    $('.qty-input').on('change', function() {
-        let input = $(this);
-        let qty = parseInt(input.val());
-        let productId = input.data('id');
-        
-        if (qty < 1 || isNaN(qty)) {
-            input.val(1);
-            qty = 1;
-        }
-
-        // 1. Lấy đơn giá
-        let price = parseFloat(input.closest('tr').find('.product-price').data('price'));
-        
-        // 2. Tính và cập nhật Thành tiền của dòng đó
-        let lineTotal = qty * price;
-        input.closest('tr').find('.line-total').text(lineTotal.toLocaleString('vi-VN') + ' đ');
-
-        // 3. Tính lại Tổng cộng toàn bộ giỏ hàng
-        updateGrandTotal();
-	
-        // 4. Gửi AJAX để lưu số lượng mới vào Server/Session
-        $.get('/cart/update/' + productId + '/' + qty, function(response) {
-            console.log("Đã cập nhật số lượng lên server");
-        }).fail(function() {
-            alert("Có lỗi khi cập nhật giỏ hàng!");
-        });
-    });
-
-    function updateGrandTotal() {
-        let total = 0;
-        $('.line-total').each(function() {
-            // Lấy text, xóa chữ 'đ' và dấu phẩy để chuyển về số
-            let val = $(this).text().replace(/[^0-9]/g, '');
-            total += parseInt(val);
-        });
-        $('#grand-total').text(total.toLocaleString('vi-VN') + ' VNĐ');
-    }
-});
-</script>
 </body>
 </html>

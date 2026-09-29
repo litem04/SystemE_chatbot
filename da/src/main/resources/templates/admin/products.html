@@ -4,16 +4,38 @@
     <title>Quản lý sản phẩm</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"> </head>
-<body>
-<div class="container mt-5">
-    <h2>Danh sách sản phẩm</h2>
-    <a href="/admin/dashboard" class="btn btn-secondary mb-3">Quay lại Dashboard</a>
-    <a href="/admin/products/add" class="btn btn-success mb-3">Thêm mới +</a>
-	<div class="mb-3">
-	    <a th:href="@{/admin/products}" class="btn btn-secondary">Tất cả</a>
-	    <a th:href="@{/admin/products(category='Mobile')}" class="btn btn-primary">Điện thoại</a>
-	    <a th:href="@{/admin/products(category='Laptop')}" class="btn btn-primary">Laptop</a>
-	    <a th:href="@{/admin/products(category='Accessories')}" class="btn btn-primary">Phụ kiện</a>
+<body class="bg-light">
+<div th:replace="~{admin/fragments/admin-header :: header('products')}"></div>
+
+<div class="container-fluid px-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="fw-bold mb-1"><i class="fas fa-boxes text-primary me-2"></i>Danh sách sản phẩm</h3>
+            <span class="text-muted small">Quản lý danh mục, giá bán và tồn kho hệ thống</span>
+        </div>
+        <div>
+            <a href="/admin/products/add" class="btn btn-success">
+                <i class="fas fa-plus me-1"></i> Thêm sản phẩm mới
+            </a>
+        </div>
+    </div>
+	<div class="mb-3 d-flex gap-2">
+	    <a th:href="@{/admin/products}" class="btn btn-sm" 
+	       th:classappend="${selectedCategory == null} ? 'btn-dark' : 'btn-outline-dark'">
+	        Tất cả (<span th:text="${products.size()}"></span>)
+	    </a>
+	    <a th:href="@{/admin/products(category='Mobile')}" class="btn btn-sm" 
+	       th:classappend="${selectedCategory == 'Mobile'} ? 'btn-primary' : 'btn-outline-primary'">
+	        <i class="fas fa-mobile-alt me-1"></i> Điện thoại
+	    </a>
+	    <a th:href="@{/admin/products(category='Laptop')}" class="btn btn-sm" 
+	       th:classappend="${selectedCategory == 'Laptop'} ? 'btn-primary' : 'btn-outline-primary'">
+	        <i class="fas fa-laptop me-1"></i> Laptop
+	    </a>
+	    <a th:href="@{/admin/products(category='Accessories')}" class="btn btn-sm" 
+	       th:classappend="${selectedCategory == 'Accessories'} ? 'btn-primary' : 'btn-outline-primary'">
+	        <i class="fas fa-headphones me-1"></i> Phụ kiện
+	    </a>
 	</div>
     <table class="table table-bordered table-hover align-middle text-center">
         <thead class="table-dark">
@@ -55,11 +77,11 @@
 		        <a th:href="@{/admin/products/update/{id}(id=${p.id})}" class="btn btn-warning btn-sm">
 		            <i class="fas fa-edit"></i> Sửa
 		        </a>
-		        <a th:href="@{/admin/products/delete/{id}(id=${p.id})}" 
-		           onclick="return confirm('Bạn có chắc muốn xóa?')"
-		           class="btn btn-danger btn-sm">
-		            <i class="fas fa-trash"></i> Xóa
-		        </a>
+		        <form th:action="@{/admin/products/delete/{id}(id=${p.id})}" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa?')">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="fas fa-trash"></i> Xóa
+                    </button>
+                </form>
 		    </td>
 		</tr>
 		</tbody>

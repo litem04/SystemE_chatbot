@@ -19,7 +19,7 @@
                 <span th:text="${successMessage}"></span>
             </div>
 
-            <form action="/register" method="post">
+            <form th:action="@{/register}" method="post">
                 <div class="mb-3">
                     <label>Họ và tên:</label>
                     <input type="text" name="name" class="form-control" required>

@@ -3,10 +3,28 @@
 <head>
     <title>Chi tiết đơn hàng</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
-<div class="container mt-5">
-    <h3>Chi tiết đơn hàng #<span th:text="${order.id}"></span></h3>
+<body class="bg-light">
+<div th:replace="~{admin/fragments/admin-header :: header('orders')}"></div>
+
+<div class="container-fluid px-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="fw-bold mb-1"><i class="fas fa-receipt text-primary me-2"></i>Chi tiết đơn hàng #<span th:text="${order.id}"></span></h3>
+            <span class="text-muted small">Xem danh sách mặt hàng và cập nhật tiến độ xử lý</span>
+        </div>
+        <a href="/admin/orders" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> Quay lại danh sách
+        </a>
+    </div>
+
+    <!-- Cảnh báo nếu đơn chuyển khoản chưa thanh toán -->
+    <div th:if="${order.paymentModeName == 'VIETQR' and !order.isPaid() and order.orderStatusName != 'CANCELLED'}" 
+         class="alert alert-warning mb-3">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        <strong>Cảnh báo giao hàng:</strong> Đơn hàng chọn hình thức chuyển khoản VietQR nhưng <strong>chưa được thanh toán (UNPAID)</strong>. Theo quy định nghiệp vụ, hệ thống không cho phép giao hàng khi chưa nhận tiền. Nếu khách chuyển khoản trực tiếp, vui lòng bấm <em>"Xác nhận Đã Nhận Tiền"</em> bên dưới trước.
+    </div>
     
     <div class="row">
 		<div class="col-md-4">
@@ -18,12 +36,12 @@
 		                <p><b>Ngày đặt:</b> <span th:text="${order.orderDate}"></span></p>
 		                <hr>
 		                <p><b>Hình thức:</b> 
-		                    <span th:if="${order.paymentMode == 'VIETQR'}" class="badge bg-info text-dark">VietQR</span>
-		                    <span th:if="${order.paymentMode != 'VIETQR'}" class="badge bg-secondary">COD</span>
+		                    <span th:if="${order.paymentModeName == 'VIETQR'}" class="badge bg-info text-dark">VietQR</span>
+		                    <span th:if="${order.paymentModeName != 'VIETQR'}" class="badge bg-secondary">COD</span>
 		                </p>
 		                <p><b>Thanh toán:</b> 
-		                    <span th:if="${order.paymentStatus == 'Paid'}" class="badge bg-success">Đã trả tiền</span>
-		                    <span th:if="${order.paymentStatus != 'Paid'}" class="badge bg-danger">Chưa trả tiền</span>
+		                    <span th:if="${order.isPaid() or order.paymentStatusName == 'PAID'}" class="badge bg-success">Đã trả tiền</span>
+		                    <span th:if="${!order.isPaid() and order.paymentStatusName != 'PAID'}" class="badge bg-danger">Chưa trả tiền</span>
 		                </p>
 		            </div>
 
@@ -40,8 +58,8 @@
 					        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 					    </div>
 
-		                <div th:if="${order.paymentMode == 'VIETQR' and order.paymentStatus != 'Paid' and order.orderStatus != 'CANCELLED'}" class="mb-3">
-		                    <form action="/admin/orders/confirm-payment" method="post">
+		                <div th:if="${order.paymentModeName == 'VIETQR' and !order.isPaid() and order.orderStatusName != 'CANCELLED'}" class="mb-3">
+		                    <form th:action="@{/admin/orders/confirm-payment}" method="post">
 		                        <input type="hidden" name="id" th:value="${order.id}">
 		                        <button type="submit" class="btn btn-success w-100">Xác nhận Đã Nhận Tiền</button>
 		                    </form>
@@ -49,20 +67,20 @@
 		                    <hr>
 		                </div>
 
-					    <form action="/admin/orders/update-status" method="post">
+					    <form th:action="@{/admin/orders/update-status}" method="post">
 					        <input type="hidden" name="id" th:value="${order.id}">
 					        
 					        <select name="status" class="form-select mb-3" 
-					                th:disabled="${order.orderStatus == 'CANCELLED' or order.orderStatus == 'DELIVERED'}">
-		                        <option value="WAITING_FOR_PAYMENT" th:selected="${order.orderStatus == 'WAITING_FOR_PAYMENT'}">Chờ thanh toán</option>
-					            <option value="PENDING" th:selected="${order.orderStatus == 'PENDING'}">Chờ xử lý</option>
-					            <option value="SHIPPED" th:selected="${order.orderStatus == 'SHIPPED'}">Đang giao</option>
-					            <option value="DELIVERED" th:selected="${order.orderStatus == 'DELIVERED'}">Đã giao hàng</option>
-					            <option value="CANCELLED" th:selected="${order.orderStatus == 'CANCELLED'}">Hủy đơn</option>
+					                th:disabled="${order.orderStatusName == 'CANCELLED' or order.orderStatusName == 'DELIVERED'}">
+		                        <option value="WAITING_FOR_PAYMENT" th:selected="${order.orderStatusName == 'WAITING_FOR_PAYMENT'}">Chờ thanh toán</option>
+					            <option value="PENDING" th:selected="${order.orderStatusName == 'PENDING'}">Chờ xử lý</option>
+					            <option value="SHIPPED" th:selected="${order.orderStatusName == 'SHIPPED'}">Đang giao</option>
+					            <option value="DELIVERED" th:selected="${order.orderStatusName == 'DELIVERED'}">Đã giao hàng</option>
+					            <option value="CANCELLED" th:selected="${order.orderStatusName == 'CANCELLED'}">Hủy đơn</option>
 					        </select>
 
 					        <button type="submit" class="btn btn-primary w-100" 
-					                th:if="${order.orderStatus != 'CANCELLED' and order.orderStatus != 'DELIVERED'}">
+					                th:if="${order.orderStatusName != 'CANCELLED' and order.orderStatusName != 'DELIVERED'}">
 					            Cập nhật trạng thái
 					        </button>
 					    </form>

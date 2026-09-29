@@ -3,10 +3,18 @@
 <head>
     <title>Thêm sản phẩm</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
-	<div class="container mt-5 w-50">
-	    <h3 th:text="${product.id == null} ? 'Thêm Sản Phẩm' : 'Cập Nhật Sản Phẩm'">Thêm sản phẩm mới</h3>
+<body class="bg-light">
+<div th:replace="~{admin/fragments/admin-header :: header('products')}"></div>
+
+<div class="container mb-5" style="max-width: 700px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="fw-bold mb-0" th:text="${product.id == null} ? 'Thêm Sản Phẩm Mới' : 'Cập Nhật Sản Phẩm'">Thêm sản phẩm mới</h3>
+        <a href="/admin/products" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> Quay lại danh sách
+        </a>
+    </div>
 
 	    <form th:action="@{${product.id == null} ? '/admin/products/add' : '/admin/products/update'}" 
 	          method="post" 

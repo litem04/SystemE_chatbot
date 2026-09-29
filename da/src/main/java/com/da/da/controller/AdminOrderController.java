@@ -2,13 +2,10 @@ package com.da.da.controller;
 
 import com.da.da.entity.Order;
 import com.da.da.entity.OrderDetail;
-import com.da.da.repository.OrderDetailRepository;
-import com.da.da.repository.OrderRepository;
-import com.da.da.service.EmailService;
 import com.da.da.service.OrderService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -22,34 +19,28 @@ public class AdminOrderController {
 
     private static final Logger log = LoggerFactory.getLogger(AdminOrderController.class);
 
-    private final OrderRepository orderRepository;
-    private final OrderDetailRepository orderDetailRepository;
     private final OrderService orderService;
-    private final EmailService emailService;
 
-    public AdminOrderController(OrderRepository orderRepository,
-                                OrderDetailRepository orderDetailRepository,
-                                OrderService orderService,
-                                EmailService emailService) {
-        this.orderRepository = orderRepository;
-        this.orderDetailRepository = orderDetailRepository;
+    public AdminOrderController(OrderService orderService) {
         this.orderService = orderService;
-        this.emailService = emailService;
     }
 
     @GetMapping("")
-    public String listOrders(Model model) {
-        List<Order> orders = orderRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
-        model.addAttribute("orders", orders);
+    public String listOrders(@RequestParam(defaultValue = "0") int page,
+                             @RequestParam(defaultValue = "15") int size,
+                             Model model) {
+        Page<Order> ordersPage = orderService.getAllOrdersPaged(page, size);
+        model.addAttribute("orders", ordersPage.getContent());
+        model.addAttribute("page", ordersPage);
         return "admin/orders";
     }
 
     @GetMapping("/view/{id}")
     public String viewOrderDetails(@PathVariable Integer id, Model model) {
-        Order order = orderRepository.findById(id).orElse(null);
+        Order order = orderService.getOrderById(id);
         if (order == null) return "redirect:/admin/orders";
 
-        List<OrderDetail> details = orderDetailRepository.findByOrder(order);
+        List<OrderDetail> details = orderService.getOrderDetails(order);
         model.addAttribute("order", order);
         model.addAttribute("details", details);
 
@@ -60,21 +51,11 @@ public class AdminOrderController {
     public String updateStatus(@RequestParam("id") Integer id,
                                @RequestParam("status") String status,
                                RedirectAttributes ra) {
-        Order order = orderRepository.findById(id).orElse(null);
-        if (order == null) {
-            ra.addFlashAttribute("error", "Không tìm thấy đơn hàng!");
-            return "redirect:/admin/orders";
-        }
-
-        String currentStatus = order.getOrderStatus() != null ? order.getOrderStatus().toUpperCase() : "";
-        if ("CANCELLED".equals(currentStatus) || "DELIVERED".equals(currentStatus)) {
-            ra.addFlashAttribute("error", "Đơn hàng đã kết thúc, không thể thay đổi trạng thái!");
-            return "redirect:/admin/orders/view/" + id;
-        }
-
         try {
             orderService.updateOrderStatus(id, status);
             ra.addFlashAttribute("success", "Cập nhật trạng thái đơn hàng thành công!");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            ra.addFlashAttribute("error", e.getMessage());
         } catch (Exception e) {
             log.error("Lỗi cập nhật trạng thái đơn hàng #{}: ", id, e);
             ra.addFlashAttribute("error", "Lỗi: " + e.getMessage());
@@ -85,27 +66,14 @@ public class AdminOrderController {
 
     @PostMapping("/confirm-payment")
     public String confirmPaymentManually(@RequestParam("id") Integer id, RedirectAttributes ra) {
-        Order order = orderRepository.findById(id).orElse(null);
-        if (order == null) {
-            ra.addFlashAttribute("error", "Không tìm thấy đơn hàng!");
-            return "redirect:/admin/orders";
-        }
-
-        order.setPaymentStatus("Paid");
-        if ("WAITING_FOR_PAYMENT".equalsIgnoreCase(order.getOrderStatus())) {
-            order.setOrderStatus("PENDING");
-        }
-        orderRepository.save(order);
-
         try {
-            if (order.getEmailId() != null && !order.getEmailId().isEmpty()) {
-                emailService.sendOrderStatusEmail(order.getEmailId(), order.getId(), "Đã thanh toán thành công");
-            }
+            orderService.confirmPaymentManually(id);
+            ra.addFlashAttribute("success", "Đã xác nhận thanh toán thành công cho đơn hàng #" + id);
         } catch (Exception e) {
-            log.warn("Lỗi gửi email xác nhận thanh toán cho đơn hàng #{}: {}", order.getId(), e.getMessage());
+            log.error("Lỗi xác nhận thanh toán cho đơn #{}: ", id, e);
+            ra.addFlashAttribute("error", "Lỗi: " + e.getMessage());
         }
 
-        ra.addFlashAttribute("success", "Đã xác nhận thanh toán thành công cho đơn hàng #" + id);
         return "redirect:/admin/orders/view/" + id;
     }
 }

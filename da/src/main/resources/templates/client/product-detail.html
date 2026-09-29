@@ -7,9 +7,20 @@
 </head>
 <body class="bg-light">
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark py-2">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="/">TECHGEAR</a>
+        <a class="navbar-brand fw-bold" href="/"><i class="fas fa-bolt text-primary me-2"></i>TECHGEAR</a>
+        <div class="d-flex align-items-center">
+            <a th:if="${session.admin != null}" href="/admin/dashboard" class="btn btn-warning btn-sm text-dark fw-bold me-2">
+                <i class="fas fa-shield-alt me-1"></i> Quay lại Admin
+            </a>
+            <a th:if="${session.user != null}" href="/my-orders" class="btn btn-outline-light btn-sm me-2">
+                <i class="fas fa-box-open me-1"></i> Đơn hàng
+            </a>
+            <a href="/cart" class="btn btn-outline-light btn-sm position-relative">
+                <i class="fas fa-shopping-cart"></i> Giỏ hàng
+            </a>
+        </div>
     </div>
 </nav>
 
@@ -135,13 +146,19 @@
             <div th:if="${product.stock > 0}">
                 <p class="text-success mt-3"><i class="fas fa-check-circle"></i> Còn hàng (Số lượng: <span th:text="${product.stock}"></span>)</p>
                 <div class="d-flex gap-2 mt-4">
-                    <a th:href="@{/cart/add(productId=${product.id})}" class="btn btn-danger flex-grow-1 py-3">
-                        <h5 class="mb-0">MUA NGAY</h5>
-                    </a>
-                    <a th:href="@{/cart/add(productId=${product.id})}" class="btn btn-outline-primary py-3 px-4 d-flex flex-column align-items-center justify-content-center">
-                        <i class="fas fa-cart-plus fa-lg"></i>
-                        <small>Thêm vào giỏ</small>
-                    </a>
+                    <form th:action="@{/cart/add}" method="post" class="flex-grow-1">
+                        <input type="hidden" name="productId" th:value="${product.id}">
+                        <button type="submit" class="btn btn-danger w-100 h-100 py-3">
+                            <h5 class="mb-0">MUA NGAY</h5>
+                        </button>
+                    </form>
+                    <form th:action="@{/cart/add}" method="post">
+                        <input type="hidden" name="productId" th:value="${product.id}">
+                        <button type="submit" class="btn btn-outline-primary h-100 py-3 px-4 d-flex flex-column align-items-center justify-content-center">
+                            <i class="fas fa-cart-plus fa-lg"></i>
+                            <small>Thêm vào giỏ</small>
+                        </button>
+                    </form>
                 </div>
             </div>
 
@@ -233,7 +250,7 @@
 
                 <div th:if="${session.user != null}" class="bg-light p-3 rounded">
                     <h5 class="fw-bold mb-3">Viết đánh giá của bạn</h5>
-                    <form action="/save-review" method="post">
+                    <form th:action="@{/save-review}" method="post">
                         <input type="hidden" name="productId" th:value="${product.id}">
                         
                         <div class="mb-3">
@@ -286,9 +303,7 @@
     }
 </script>
 
-<footer class="bg-dark text-white text-center py-4 mt-5">
-    <p>&copy; 2025 DuHV6. All rights reserved.</p>
-</footer>
+<div th:replace="~{layout/footer :: footer_fragment}"></div>
 
 </body>
 </html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="header(activeTab)">
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-dark bg-dark px-4 py-2 shadow-sm">
+        <a class="navbar-brand fw-bold d-flex align-items-center" href="/admin/dashboard">
+            <i class="fas fa-laptop-code text-primary me-2 fs-4"></i>
+            <span>TechGear <span class="badge bg-primary text-uppercase" style="font-size: 0.65rem;">Admin</span></span>
+        </a>
+        <div class="d-flex align-items-center">
+            <a href="/" class="btn btn-sm btn-outline-light me-3" target="_blank">
+                <i class="fas fa-store me-1"></i> Xem cửa hàng
+            </a>
+            <span class="text-white-50 me-3 small"><i class="fas fa-user-shield me-1"></i> Quản trị viên</span>
+            <form action="/logout" method="post" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="fas fa-sign-out-alt me-1"></i> Đăng xuất
+                </button>
+            </form>
+        </div>
+    </nav>
+
+    <!-- Navigation Bar / Menu Tabs -->
+    <div class="bg-white border-bottom shadow-sm mb-4">
+        <div class="container-fluid px-4">
+            <ul class="nav nav-tabs border-0 pt-2">
+                <li class="nav-item">
+                    <a class="nav-link px-3 py-2 fw-semibold" 
+                       th:classappend="${activeTab == 'dashboard'} ? 'active text-primary fw-bold border-bottom border-primary border-3' : 'text-secondary'" 
+                       href="/admin/dashboard">
+                        <i class="fas fa-tachometer-alt me-2"></i>Tổng quan
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link px-3 py-2 fw-semibold" 
+                       th:classappend="${activeTab == 'products'} ? 'active text-primary fw-bold border-bottom border-primary border-3' : 'text-secondary'" 
+                       href="/admin/products">
+                        <i class="fas fa-boxes me-2"></i>Sản phẩm
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link px-3 py-2 fw-semibold" 
+                       th:classappend="${activeTab == 'orders'} ? 'active text-primary fw-bold border-bottom border-primary border-3' : 'text-secondary'" 
+                       href="/admin/orders">
+                        <i class="fas fa-shopping-cart me-2"></i>Đơn hàng
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link px-3 py-2 fw-semibold" 
+                       th:classappend="${activeTab == 'customers'} ? 'active text-primary fw-bold border-bottom border-primary border-3' : 'text-secondary'" 
+                       href="/admin/customers">
+                        <i class="fas fa-users me-2"></i>Khách hàng
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ADMIN AI COPILOT FLOATING BUTTON & CHAT WINDOW -->
+    <div id="adminAiWrapper" style="position: fixed; bottom: 25px; right: 25px; z-index: 1050; font-family: system-ui, -apple-system, sans-serif;">
+        <!-- Launcher Button -->
+        <button id="adminAiToggleBtn" class="btn btn-primary shadow-lg rounded-pill px-4 py-3 d-flex align-items-center gap-2" 
+                style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); border: none; font-weight: 600; letter-spacing: 0.3px; transition: all 0.3s ease; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);">
+            <i class="fas fa-robot fs-5 text-warning"></i>
+            <span>Admin Copilot</span>
+            <span class="badge bg-warning text-dark rounded-pill px-2 py-1" style="font-size: 0.65rem;">AI</span>
+        </button>
+
+        <!-- Chat Window Box -->
+        <div id="adminAiBox" class="card shadow-lg border-0 d-none" 
+             style="position: fixed; bottom: 85px; right: 25px; width: 440px; max-width: calc(100vw - 40px); height: 600px; max-height: calc(100vh - 120px); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; background: #ffffff; box-shadow: 0 20px 40px rgba(0,0,0,0.2) !important;">
+            
+            <!-- Window Header -->
+            <div class="card-header bg-dark text-white px-3 py-3 d-flex justify-content-between align-items-center border-0"
+                 style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px;">
+                        <i class="fas fa-robot text-warning"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold small mb-0 text-white">TechGear Admin Copilot</div>
+                        <div class="text-success small d-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                            <span class="rounded-circle bg-success d-inline-block" style="width: 7px; height: 7px;"></span>
+                            Trợ lý ảo vận hành cửa hàng
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-1">
+                    <button id="adminAiResetBtn" class="btn btn-sm btn-link text-white-50 p-1" title="Làm mới cuộc trò chuyện">
+                        <i class="fas fa-redo-alt"></i>
+                    </button>
+                    <button id="adminAiCloseBtn" class="btn btn-sm btn-link text-white-50 p-1" title="Đóng">
+                        <i class="fas fa-times fs-6"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Chips Bar -->
+            <div class="px-3 py-2 bg-light border-bottom d-flex gap-1 overflow-auto" style="white-space: nowrap; scrollbar-width: none;">
+                <button class="btn btn-sm btn-outline-primary rounded-pill py-0 px-2 small quick-chip" data-msg="Báo cáo doanh thu" style="font-size: 0.75rem;">
+                    📊 Doanh thu
+                </button>
+                <button class="btn btn-sm btn-outline-warning text-dark rounded-pill py-0 px-2 small quick-chip" data-msg="Đơn hàng chờ xử lý" style="font-size: 0.75rem;">
+                    📦 Đơn chờ xử lý
+                </button>
+                <button class="btn btn-sm btn-outline-danger rounded-pill py-0 px-2 small quick-chip" data-msg="Cảnh báo tồn kho" style="font-size: 0.75rem;">
+                    ⚠️ Cảnh báo kho
+                </button>
+                <button class="btn btn-sm btn-outline-info text-dark rounded-pill py-0 px-2 small quick-chip" data-msg="Thống kê khách hàng" style="font-size: 0.75rem;">
+                    👥 Khách hàng
+                </button>
+                <button class="btn btn-sm btn-outline-secondary rounded-pill py-0 px-2 small quick-chip" data-msg="Hướng dẫn" style="font-size: 0.75rem;">
+                    ❓ Menu
+                </button>
+            </div>
+
+            <!-- Chat Messages Content -->
+            <div id="adminAiMessages" class="p-3 flex-grow-1 overflow-auto bg-light" style="font-size: 0.88rem; line-height: 1.5;">
+                <div class="d-flex mb-3">
+                    <div class="bg-white p-3 rounded-4 shadow-sm border text-dark w-100">
+                        <div class="fw-bold text-primary mb-1"><i class="fas fa-robot text-warning me-1"></i> TechGear Copilot</div>
+                        Xin chào Quản trị viên! Tôi có thể giúp bạn tổng hợp nhanh số liệu doanh thu, kiểm tra đơn hàng chờ duyệt, cảnh báo hàng sắp hết hoặc tra cứu bất kỳ đơn hàng nào theo mã (Ví dụ: <code>kiểm tra đơn #2</code>).
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input Footer -->
+            <div class="p-2 bg-white border-top">
+                <form id="adminAiForm" class="d-flex align-items-center gap-2 m-0">
+                    <input type="text" id="adminAiInput" class="form-control form-control-sm rounded-pill px-3 py-2 border" 
+                           placeholder="Hỏi doanh thu, đơn #2, tồn kho..." autocomplete="off" required>
+                    <button type="submit" id="adminAiSendBtn" class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center" 
+                            style="width: 38px; height: 38px; min-width: 38px;">
+                        <i class="fas fa-paper-plane" style="font-size: 0.85rem;"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN AI COPILOT JAVASCRIPT -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const toggleBtn = document.getElementById("adminAiToggleBtn");
+        const closeBtn = document.getElementById("adminAiCloseBtn");
+        const resetBtn = document.getElementById("adminAiResetBtn");
+        const box = document.getElementById("adminAiBox");
+        const form = document.getElementById("adminAiForm");
+        const input = document.getElementById("adminAiInput");
+        const sendBtn = document.getElementById("adminAiSendBtn");
+        const messagesDiv = document.getElementById("adminAiMessages");
+        const quickChips = document.querySelectorAll(".quick-chip");
+
+        if (!toggleBtn || !box) return;
+
+        toggleBtn.addEventListener("click", function() {
+            box.classList.toggle("d-none");
+            if (!box.classList.contains("d-none")) {
+                input.focus();
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        });
+
+        closeBtn.addEventListener("click", function() {
+            box.classList.add("d-none");
+        });
+
+        resetBtn.addEventListener("click", function() {
+            messagesDiv.innerHTML = `
+                <div class="d-flex mb-3">
+                    <div class="bg-white p-3 rounded-4 shadow-sm border text-dark w-100">
+                        <div class="fw-bold text-primary mb-1"><i class="fas fa-robot text-warning me-1"></i> TechGear Copilot</div>
+                        Đã làm mới cuộc hội thoại. Bạn muốn tra cứu hay tổng hợp thông tin gì về hệ thống?
+                    </div>
+                </div>`;
+        });
+
+        quickChips.forEach(chip => {
+            chip.addEventListener("click", function() {
+                const msg = this.getAttribute("data-msg");
+                sendMessage(msg);
+            });
+        });
+
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+            const msg = input.value.trim();
+            if (msg) {
+                sendMessage(msg);
+                input.value = "";
+            }
+        });
+
+        function formatMarkdown(text) {
+            if (!text) return "";
+            let html = text
+                // Headers
+                .replace(/^### (.*$)/gim, '<h6 class="fw-bold mt-2 mb-1 text-primary">$1</h6>')
+                .replace(/^## (.*$)/gim, '<h5 class="fw-bold mt-2 mb-1 text-dark">$1</h5>')
+                // Bold & Italic
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                // Code block / Inline code
+                .replace(/`([^`]+)`/g, '<code class="bg-light text-danger px-1 rounded border">$1</code>')
+                // Markdown Links [text](url) -> <a href="url" class="btn btn-sm btn-outline-primary py-0 px-1">text</a>
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="fw-bold text-decoration-none badge bg-primary text-white ms-1">$1</a>')
+                // Lists
+                .replace(/^\s*-\s+(.*$)/gim, '<div class="d-flex align-items-start mb-1"><span class="me-2 text-primary">•</span><div>$1</div></div>')
+                // Line breaks
+                .replace(/\n\n/g, '<div class="my-2"></div>')
+                .replace(/\n/g, '<br>');
+            return html;
+        }
+
+        function appendMessage(sender, text) {
+            const isUser = (sender === 'user');
+            const wrapper = document.createElement("div");
+            wrapper.className = isUser ? "d-flex justify-content-end mb-3" : "d-flex mb-3";
+
+            if (isUser) {
+                wrapper.innerHTML = `
+                    <div class="bg-primary text-white p-2 px-3 rounded-4 shadow-sm" style="max-width: 85%; word-break: break-word;">
+                        ${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+                    </div>`;
+            } else {
+                wrapper.innerHTML = `
+                    <div class="bg-white p-3 rounded-4 shadow-sm border text-dark w-100" style="word-break: break-word;">
+                        <div class="fw-bold text-primary mb-1 small"><i class="fas fa-robot text-warning me-1"></i> TechGear Copilot</div>
+                        <div>${formatMarkdown(text)}</div>
+                    </div>`;
+            }
+
+            messagesDiv.appendChild(wrapper);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function appendLoading() {
+            const loading = document.createElement("div");
+            loading.id = "adminAiLoading";
+            loading.className = "d-flex mb-3";
+            loading.innerHTML = `
+                <div class="bg-white p-2 px-3 rounded-4 shadow-sm border text-muted small d-flex align-items-center gap-2">
+                    <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                    <span>Admin Copilot đang phân tích số liệu...</span>
+                </div>`;
+            messagesDiv.appendChild(loading);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            return loading;
+        }
+
+        async function sendMessage(text) {
+            appendMessage('user', text);
+            const loadingEl = appendLoading();
+            sendBtn.disabled = true;
+
+            try {
+                const response = await fetch('/admin/api/ai/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: text })
+                });
+
+                if (loadingEl && loadingEl.parentNode) {
+                    loadingEl.remove();
+                }
+
+                if (!response.ok) {
+                    throw new Error("Mã lỗi: " + response.status);
+                }
+
+                const data = await response.json();
+                appendMessage('ai', data.reply || "Không có phản hồi từ hệ thống.");
+            } catch (err) {
+                if (loadingEl && loadingEl.parentNode) {
+                    loadingEl.remove();
+                }
+                appendMessage('ai', "⚠️ Đã xảy ra sự cố khi gọi Admin Copilot: " + err.message + ". Vui lòng thử lại sau.");
+            } finally {
+                sendBtn.disabled = false;
+                input.focus();
+            }
+        }
+    });
+    </script>
+</div>
+</body>
+</html>
