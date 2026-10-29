@@ -188,10 +188,11 @@ class OrderServiceTest {
                 .id(50)
                 .orderStatus(OrderStatus.WAITING_FOR_PAYMENT)
                 .paymentStatus(PaymentStatus.UNPAID)
+                .paymentMode(com.da.da.entity.enums.PaymentMode.VIETQR)
                 .emailId("test@example.com")
                 .build();
 
-        when(orderRepository.findById(50)).thenReturn(Optional.of(order));
+            when(orderRepository.findByIdWithLock(50)).thenReturn(Optional.of(order));
         when(orderRepository.save(any(Order.class))).thenAnswer(i -> i.getArgument(0));
 
         Order result = orderService.confirmPaymentManually(50);

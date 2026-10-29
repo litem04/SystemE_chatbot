@@ -202,6 +202,14 @@ public class OrderService {
             throw new IllegalStateException("Đơn hàng đã kết thúc (" + oldStatus.name() + "), không thể thay đổi trạng thái!");
         }
 
+        if (!isAllowedStatusTransition(oldStatus, newStatus)) {
+            throw new IllegalStateException("Không thể chuyển đơn hàng từ " + oldStatus + " sang " + newStatus + ".");
+        }
+
+        if (newStatus == OrderStatus.CANCELLED && order.isPaid()) {
+            throw new IllegalStateException("Đơn đã thanh toán. Cần hoàn tiền thành công trước khi hủy đơn.");
+        }
+
         // Ràng buộc thanh toán nghiêm ngặt: Đơn hàng chuyển khoản (trả trước) nếu chưa thanh toán thì KHÔNG được giao hàng
         if (order.getPaymentMode() != PaymentMode.COD && order.getPaymentStatus() != PaymentStatus.PAID) {
             if (newStatus == OrderStatus.SHIPPED || newStatus == OrderStatus.DELIVERED) {
@@ -273,9 +281,32 @@ public class OrderService {
         updateOrderStatus(orderId, OrderStatus.fromString(newStatusStr));
     }
 
+    private boolean isAllowedStatusTransition(OrderStatus current, OrderStatus next) {
+        if (current == next) {
+            return true;
+        }
+        return switch (current) {
+            case WAITING_FOR_PAYMENT -> next == OrderStatus.PENDING || next == OrderStatus.CANCELLED;
+            case PENDING -> next == OrderStatus.PROCESSING || next == OrderStatus.CANCELLED;
+            case PROCESSING -> next == OrderStatus.SHIPPED || next == OrderStatus.CANCELLED;
+            case SHIPPED -> next == OrderStatus.DELIVERED;
+            case DELIVERED, CANCELLED -> false;
+        };
+    }
+
     @Transactional(readOnly = true)
     public Page<Order> getAllOrdersPaged(int page, int size) {
-        return orderRepository.findAll(PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")));
+        return getOrdersPaged(page, size, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Order> getOrdersPaged(int page, int size, OrderStatus status) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(1, Math.min(size, 100));
+        PageRequest pageRequest = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "id"));
+        return status == null
+                ? orderRepository.findAll(pageRequest)
+                : orderRepository.findByOrderStatusOrderByIdDesc(status, pageRequest);
     }
 
     @Transactional(readOnly = true)
@@ -291,8 +322,52 @@ public class OrderService {
         return orderRepository.calculateTotalRevenue();
     }
 
+    @Transactional(readOnly = true)
+    public BigDecimal calculateShippingRevenue() {
+        return orderRepository.calculateShippingRevenue();
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.Map<OrderStatus, Long> getOrderStatusSummary() {
+        java.util.Map<OrderStatus, Long> summary = new java.util.LinkedHashMap<>();
+        for (OrderStatus status : OrderStatus.values()) {
+            summary.put(status, orderRepository.countByOrderStatus(status));
+        }
+        return summary;
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.da.da.dto.TopSellingProductProjection> getTopSellingProducts(int limit) {
+        return orderDetailRepository.findTopSellingProducts(PageRequest.of(0, Math.max(1, limit)));
+    }
+
     public List<com.da.da.dto.DailyRevenueProjection> getDailyRevenueStatistics() {
-        return orderRepository.getDailyRevenueStatistics();
+        try {
+            return orderRepository.getDailyRevenueStatistics();
+        } catch (Exception e) {
+            log.warn("Native SQL grouping failed, falling back to Java RAM grouping (H2 compatibility): {}", e.getMessage());
+            List<Order> deliveredOrders = orderRepository.findByOrderStatus(OrderStatus.DELIVERED);
+            java.util.Map<String, BigDecimal> grouped = new java.util.TreeMap<>();
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM");
+            for (Order o : deliveredOrders) {
+                if (o.getOrderDate() != null) {
+                    String day = sdf.format(o.getOrderDate());
+                    BigDecimal current = grouped.getOrDefault(day, BigDecimal.ZERO);
+                    BigDecimal orderTotal = o.getProductTotalPrice() != null ? o.getProductTotalPrice() : BigDecimal.ZERO;
+                    grouped.put(day, current.add(orderTotal));
+                }
+            }
+            List<com.da.da.dto.DailyRevenueProjection> result = new java.util.ArrayList<>();
+            for (java.util.Map.Entry<String, BigDecimal> entry : grouped.entrySet()) {
+                result.add(new com.da.da.dto.DailyRevenueProjection() {
+                    @Override
+                    public String getOrderDay() { return entry.getKey(); }
+                    @Override
+                    public BigDecimal getTotalAmount() { return entry.getValue(); }
+                });
+            }
+            return result;
+        }
     }
 
     @Transactional(readOnly = true)
@@ -323,8 +398,18 @@ public class OrderService {
      */
     @Transactional(rollbackFor = Exception.class)
     public Order confirmPaymentManually(Integer orderId) {
-        Order order = orderRepository.findById(orderId)
+        Order order = orderRepository.findByIdWithLock(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng #" + orderId));
+
+        if (order.getPaymentMode() == PaymentMode.COD) {
+            throw new IllegalStateException("Không thể xác nhận thanh toán trước cho đơn COD.");
+        }
+        if (order.getOrderStatus() == OrderStatus.CANCELLED) {
+            throw new IllegalStateException("Không thể xác nhận thanh toán cho đơn đã hủy.");
+        }
+        if (order.isPaid()) {
+            return order;
+        }
 
         order.setPaymentStatus(PaymentStatus.PAID);
         if (order.getOrderStatus() == OrderStatus.WAITING_FOR_PAYMENT) {
@@ -365,5 +450,20 @@ public class OrderService {
     public String countByStatusForAi(String status) {
         long count = orderRepository.countByOrderStatus(OrderStatus.fromString(status));
         return "Hiện có " + count + " đơn hàng đang ở trạng thái " + status;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Order> getOrdersByCustomer(String email, int page, int size) {
+        return orderRepository.findByEmailIdOrderByIdDesc(email, PageRequest.of(page, size));
+    }
+
+    @Transactional(readOnly = true)
+    public Order getOrderForCustomer(Integer id, String email) {
+        if (id == null || email == null) return null;
+        Order order = orderRepository.findById(id).orElse(null);
+        if (order == null || !email.equalsIgnoreCase(order.getEmailId())) {
+            return null;
+        }
+        return order;
     }
 }

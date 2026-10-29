@@ -32,6 +32,10 @@ public class ProductRequestDTO {
     @Min(value = 0, message = "Giới hạn khuyến mãi không hợp lệ")
     private Integer discountLimit;
 
+    private Integer discountSold;
+
+    private String image;
+
     @NotNull(message = "Số lượng tồn kho không được để trống")
     @Min(value = 0, message = "Số lượng tồn kho không được nhỏ hơn 0")
     private Integer stock;

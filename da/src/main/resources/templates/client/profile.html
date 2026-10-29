@@ -45,11 +45,19 @@
                         </div>
 
                         <div class="row mb-3">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label fw-bold">Số điện thoại</label>
                                 <input type="text" class="form-control" th:field="*{phone}" pattern="[0-9]{10}" title="Nhập 10 số điện thoại">
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Giới tính</label>
+                                <select th:field="*{gender}" class="form-select">
+                                    <option value="Nam">Nam</option>
+                                    <option value="Nữ">Nữ</option>
+                                    <option value="Khác">Khác</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
                                 <label class="form-label fw-bold">Mã bưu chính (Pin Code)</label>
                                 <input type="text" class="form-control" th:field="*{pinCode}">
                             </div>
@@ -69,6 +77,46 @@
                     </form>
                 </div>
             </div>
+
+            <!-- Form Đổi Mật Khẩu An Toàn (ERP-style Security) -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-key me-2"></i>Đổi mật khẩu</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div th:if="${pwdSuccess}" class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fas fa-check-circle me-2"></i><span th:text="${pwdSuccess}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    <div th:if="${pwdError}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i><span th:text="${pwdError}"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+
+                    <form th:action="@{/change-password}" method="post">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Mật khẩu hiện tại</label>
+                            <input type="password" name="oldPassword" class="form-control" required placeholder="Nhập mật khẩu hiện tại...">
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Mật khẩu mới</label>
+                                <input type="password" name="newPassword" class="form-control" minlength="6" required placeholder="Ít nhất 6 ký tự...">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Xác nhận mật khẩu mới</label>
+                                <input type="password" name="confirmPassword" class="form-control" minlength="6" required placeholder="Nhập lại mật khẩu mới...">
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-warning fw-bold px-4">
+                                <i class="fas fa-lock me-2"></i>Cập nhật mật khẩu
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>

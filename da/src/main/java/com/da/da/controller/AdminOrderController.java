@@ -2,6 +2,7 @@ package com.da.da.controller;
 
 import com.da.da.entity.Order;
 import com.da.da.entity.OrderDetail;
+import com.da.da.entity.enums.OrderStatus;
 import com.da.da.service.OrderService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,10 +29,12 @@ public class AdminOrderController {
     @GetMapping("")
     public String listOrders(@RequestParam(defaultValue = "0") int page,
                              @RequestParam(defaultValue = "15") int size,
+                             @RequestParam(required = false) OrderStatus status,
                              Model model) {
-        Page<Order> ordersPage = orderService.getAllOrdersPaged(page, size);
+        Page<Order> ordersPage = orderService.getOrdersPaged(page, size, status);
         model.addAttribute("orders", ordersPage.getContent());
         model.addAttribute("page", ordersPage);
+        model.addAttribute("selectedStatus", status);
         return "admin/orders";
     }
 

@@ -68,46 +68,117 @@ public class AdminAiService {
         return sdf.format(date);
     }
 
+    private static final List<String> REVENUE_KEYWORDS = List.of(
+            "doanh thu", "doanh so", "tien", "tai chinh", "revenue", "loi nhuan", "tien nong", "thu nhap"
+    );
+
+    private static final List<String> ORDER_KEYWORDS = List.of(
+            "don hang", "cho xu ly", "cho duyet", "dong goi", "van chuyen", "don moi", "giao hang", "don cho", "xu ly don", "orders"
+    );
+
+    private static final List<String> INVENTORY_KEYWORDS = List.of(
+            "ton kho", "kho", "het hang", "sap het", "canh bao kho", "canh bao", "stock", "hang ton", "nhap hang"
+    );
+
+    private static final List<String> CUSTOMER_KEYWORDS = List.of(
+            "khach hang", "khach", "thanh vien", "user", "nguoi dung", "customer", "tai khoan"
+    );
+
+    private static final List<String> GREETING_KEYWORDS = List.of(
+            "chao", "hi", "hello", "alo", "giup", "huong dan", "menu", "help", "lam duoc gi", "chuc nang"
+    );
+
+    public static String removeAccents(String text) {
+        if (text == null) return "";
+        String normalized = java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD);
+        String withoutDiacritics = normalized.replaceAll("\\p{M}", "");
+        return withoutDiacritics.replace("đ", "d").replace("Đ", "D").toLowerCase().trim();
+    }
+
+    public static int levenshteinDistance(String a, String b) {
+        if (a == null || b == null) return Integer.MAX_VALUE;
+        int[] costs = new int[b.length() + 1];
+        for (int j = 0; j <= b.length(); j++) costs[j] = j;
+        for (int i = 1; i <= a.length(); i++) {
+            costs[0] = i;
+            int nw = i - 1;
+            for (int j = 1; j <= b.length(); j++) {
+                int cj = Math.min(1 + Math.min(costs[j], costs[j - 1]),
+                        a.charAt(i - 1) == b.charAt(j - 1) ? nw : nw + 1);
+                nw = costs[j];
+                costs[j] = cj;
+            }
+        }
+        return costs[b.length()];
+    }
+
+    private static boolean matchesAnyKeyword(String normText, List<String> keywords, int maxDistance) {
+        for (String kw : keywords) {
+            if (normText.contains(kw)) return true;
+        }
+        String[] words = normText.split("\\s+");
+        for (String kw : keywords) {
+            int kwWordsCount = kw.split("\\s+").length;
+            if (kwWordsCount == 1) {
+                for (String w : words) {
+                    if (levenshteinDistance(w, kw) <= maxDistance) return true;
+                }
+            } else if (words.length >= kwWordsCount) {
+                for (int i = 0; i <= words.length - kwWordsCount; i++) {
+                    StringBuilder window = new StringBuilder();
+                    for (int j = 0; j < kwWordsCount; j++) {
+                        if (j > 0) window.append(" ");
+                        window.append(words[i + j]);
+                    }
+                    if (levenshteinDistance(window.toString(), kw) <= maxDistance) return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public String processAdminChat(String query) {
         if (query == null || query.trim().isEmpty()) {
             return "Xin chào Quản trị viên! Tôi là **TechGear Admin Copilot**. Bạn cần tổng hợp thông tin gì hôm nay?";
         }
 
-        String lower = query.trim().toLowerCase();
+        String norm = removeAccents(query);
 
-        // 1. Tra cứu đơn hàng theo ID (Ví dụ: "kiểm tra đơn #2", "đơn 1", "chi tiết đơn hàng 3")
-        Pattern orderIdPattern = Pattern.compile("(?:đơn(?:\\s*hàng)?|mã(?:\\s*đơn)?|#|order)\\s*#?(\\d+)", Pattern.CASE_INSENSITIVE);
-        Matcher matcher = orderIdPattern.matcher(lower);
+        // 1. Tra cứu đơn hàng theo ID (Ví dụ: "kiểm tra đơn #2", "đơn 1", "chi tiết đơn hàng 3", "don 2", "#1")
+        Pattern orderIdPattern = Pattern.compile("(?:đơn(?:\\s*hàng)?|don(?:\\s*hang)?|mã(?:\\s*đơn)?|ma(?:\\s*don)?|#|order|check\\s*don|tra\\s*cuu\\s*don)?\\s*#?(\\d+)", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = orderIdPattern.matcher(norm);
         if (matcher.find()) {
             try {
                 int orderId = Integer.parseInt(matcher.group(1));
-                return getOrderDetailSummary(orderId);
+                if (orderId > 0) {
+                    return getOrderDetailSummary(orderId);
+                }
             } catch (Exception ignored) {
             }
         }
 
-        // 2. Báo cáo Doanh thu & Dòng tiền
-        if (lower.contains("doanh thu") || lower.contains("doanh số") || lower.contains("tiền") || lower.contains("tài chính")) {
-            return getRevenueReport();
-        }
-
-        // 3. Tình trạng Đơn hàng & Đơn chờ xử lý
-        if (lower.contains("đơn hàng") || lower.contains("chờ xử lý") || lower.contains("chờ duyệt") || lower.contains("vận chuyển") || lower.contains("đơn mới")) {
-            return getOrderStatusSummary();
-        }
-
-        // 4. Cảnh báo Tồn kho & Sản phẩm sắp hết hàng
-        if (lower.contains("tồn kho") || lower.contains("kho") || lower.contains("hết hàng") || lower.contains("sắp hết") || lower.contains("cảnh báo")) {
-            return getInventoryAlert();
-        }
-
-        // 5. Thống kê Khách hàng
-        if (lower.contains("khách hàng") || lower.contains("thành viên") || lower.contains("user") || lower.contains("người dùng")) {
+        // 2. Thống kê Khách hàng (Hỗ trợ bắt lỗi chính tả, vd: "khách hànhg", "khach", "thanh vien")
+        if (matchesAnyKeyword(norm, CUSTOMER_KEYWORDS, 2)) {
             return getCustomerSummary();
         }
 
+        // 3. Báo cáo Doanh thu & Dòng tiền (Hỗ trợ lỗi chính tả, vd: "doang thu", "doanhthu", "tien", "doanh so")
+        if (matchesAnyKeyword(norm, REVENUE_KEYWORDS, 2)) {
+            return getRevenueReport();
+        }
+
+        // 4. Tình trạng Đơn hàng & Đơn chờ xử lý
+        if (matchesAnyKeyword(norm, ORDER_KEYWORDS, 2)) {
+            return getOrderStatusSummary();
+        }
+
+        // 5. Cảnh báo Tồn kho & Sản phẩm sắp hết hàng
+        if (matchesAnyKeyword(norm, INVENTORY_KEYWORDS, 2)) {
+            return getInventoryAlert();
+        }
+
         // 6. Chào hỏi / Hướng dẫn
-        if (lower.matches(".*\\b(chào|hi|hello|alo|giúp|hướng dẫn|menu|làm được gì)\\b.*") && lower.length() < 30) {
+        if (matchesAnyKeyword(norm, GREETING_KEYWORDS, 1) && norm.length() < 35) {
             return getGreetingMenu();
         }
 

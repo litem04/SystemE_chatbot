@@ -73,7 +73,7 @@
             
             <!-- Window Header -->
             <div class="card-header bg-dark text-white px-3 py-3 d-flex justify-content-between align-items-center border-0"
-                 style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+                 style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); flex-shrink: 0;">
                 <div class="d-flex align-items-center gap-2">
                     <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px;">
                         <i class="fas fa-robot text-warning"></i>
@@ -96,27 +96,28 @@
                 </div>
             </div>
 
-            <!-- Quick Chips Bar -->
-            <div class="px-3 py-2 bg-light border-bottom d-flex gap-1 overflow-auto" style="white-space: nowrap; scrollbar-width: none;">
-                <button class="btn btn-sm btn-outline-primary rounded-pill py-0 px-2 small quick-chip" data-msg="Báo cáo doanh thu" style="font-size: 0.75rem;">
+            <!-- Quick Chips Bar (flex-shrink: 0 to prevent being squished) -->
+            <div class="px-3 py-2 border-bottom d-flex align-items-center gap-2 overflow-auto" 
+                 style="white-space: nowrap; scrollbar-width: none; flex-shrink: 0; min-height: 48px; background: #f8fafc !important;">
+                <button class="btn btn-sm btn-outline-primary rounded-pill py-1 px-2.5 small quick-chip" data-msg="Báo cáo doanh thu" style="font-size: 0.78rem; font-weight: 500; white-space: nowrap;">
                     📊 Doanh thu
                 </button>
-                <button class="btn btn-sm btn-outline-warning text-dark rounded-pill py-0 px-2 small quick-chip" data-msg="Đơn hàng chờ xử lý" style="font-size: 0.75rem;">
+                <button class="btn btn-sm btn-outline-warning text-dark rounded-pill py-1 px-2.5 small quick-chip" data-msg="Đơn hàng chờ xử lý" style="font-size: 0.78rem; font-weight: 500; white-space: nowrap;">
                     📦 Đơn chờ xử lý
                 </button>
-                <button class="btn btn-sm btn-outline-danger rounded-pill py-0 px-2 small quick-chip" data-msg="Cảnh báo tồn kho" style="font-size: 0.75rem;">
+                <button class="btn btn-sm btn-outline-danger rounded-pill py-1 px-2.5 small quick-chip" data-msg="Cảnh báo tồn kho" style="font-size: 0.78rem; font-weight: 500; white-space: nowrap;">
                     ⚠️ Cảnh báo kho
                 </button>
-                <button class="btn btn-sm btn-outline-info text-dark rounded-pill py-0 px-2 small quick-chip" data-msg="Thống kê khách hàng" style="font-size: 0.75rem;">
+                <button class="btn btn-sm btn-outline-info text-dark rounded-pill py-1 px-2.5 small quick-chip" data-msg="Thống kê khách hàng" style="font-size: 0.78rem; font-weight: 500; white-space: nowrap;">
                     👥 Khách hàng
                 </button>
-                <button class="btn btn-sm btn-outline-secondary rounded-pill py-0 px-2 small quick-chip" data-msg="Hướng dẫn" style="font-size: 0.75rem;">
+                <button class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-2.5 small quick-chip" data-msg="Hướng dẫn" style="font-size: 0.78rem; font-weight: 500; white-space: nowrap;">
                     ❓ Menu
                 </button>
             </div>
 
             <!-- Chat Messages Content -->
-            <div id="adminAiMessages" class="p-3 flex-grow-1 overflow-auto bg-light" style="font-size: 0.88rem; line-height: 1.5;">
+            <div id="adminAiMessages" class="p-3 flex-grow-1 overflow-auto bg-light" style="font-size: 0.88rem; line-height: 1.5; min-height: 0;">
                 <div class="d-flex mb-3">
                     <div class="bg-white p-3 rounded-4 shadow-sm border text-dark w-100">
                         <div class="fw-bold text-primary mb-1"><i class="fas fa-robot text-warning me-1"></i> TechGear Copilot</div>
@@ -126,8 +127,9 @@
             </div>
 
             <!-- Chat Input Footer -->
-            <div class="p-2 bg-white border-top">
-                <form id="adminAiForm" class="d-flex align-items-center gap-2 m-0">
+            <div class="p-2 bg-white border-top" style="flex-shrink: 0;">
+                    <form id="adminAiForm" class="d-flex align-items-center gap-2 m-0"
+                        th:attr="data-csrf-header=${_csrf.headerName},data-csrf-token=${_csrf.token}">
                     <input type="text" id="adminAiInput" class="form-control form-control-sm rounded-pill px-3 py-2 border" 
                            placeholder="Hỏi doanh thu, đơn #2, tồn kho..." autocomplete="off" required>
                     <button type="submit" id="adminAiSendBtn" class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center" 
@@ -140,7 +142,7 @@
     </div>
 
     <!-- ADMIN AI COPILOT JAVASCRIPT -->
-    <script>
+    <script th:inline="none">
     document.addEventListener("DOMContentLoaded", function() {
         const toggleBtn = document.getElementById("adminAiToggleBtn");
         const closeBtn = document.getElementById("adminAiCloseBtn");
@@ -152,11 +154,48 @@
         const messagesDiv = document.getElementById("adminAiMessages");
         const quickChips = document.querySelectorAll(".quick-chip");
 
+        const ADMIN_STORAGE_KEY = 'techgear_admin_copilot_history';
+        const ADMIN_STATE_KEY = 'techgear_admin_copilot_open_state';
+
         if (!toggleBtn || !box) return;
+
+        // 1. Phục hồi lịch sử hội thoại từ LocalStorage
+        function loadHistory() {
+            let history = [];
+            try {
+                const stored = localStorage.getItem(ADMIN_STORAGE_KEY);
+                if (stored) {
+                    history = JSON.parse(stored) || [];
+                }
+            } catch (e) {
+                console.warn("Không thể đọc lịch sử Admin Copilot từ localStorage:", e);
+                history = [];
+            }
+
+            if (history.length > 0) {
+                messagesDiv.innerHTML = '';
+                history.forEach(item => {
+                    appendMessage(item.role, item.text, false);
+                });
+            }
+        }
+
+        // 2. Phục hồi trạng thái mở/đóng cửa sổ chat
+        const isChatOpen = localStorage.getItem(ADMIN_STATE_KEY) === 'true';
+        if (isChatOpen) {
+            box.classList.remove("d-none");
+            setTimeout(() => {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }, 100);
+        }
+
+        loadHistory();
 
         toggleBtn.addEventListener("click", function() {
             box.classList.toggle("d-none");
-            if (!box.classList.contains("d-none")) {
+            const isOpen = !box.classList.contains("d-none");
+            localStorage.setItem(ADMIN_STATE_KEY, isOpen ? 'true' : 'false');
+            if (isOpen) {
                 input.focus();
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
             }
@@ -164,9 +203,11 @@
 
         closeBtn.addEventListener("click", function() {
             box.classList.add("d-none");
+            localStorage.setItem(ADMIN_STATE_KEY, 'false');
         });
 
         resetBtn.addEventListener("click", function() {
+            localStorage.removeItem(ADMIN_STORAGE_KEY);
             messagesDiv.innerHTML = `
                 <div class="d-flex mb-3">
                     <div class="bg-white p-3 rounded-4 shadow-sm border text-dark w-100">
@@ -174,6 +215,7 @@
                         Đã làm mới cuộc hội thoại. Bạn muốn tra cứu hay tổng hợp thông tin gì về hệ thống?
                     </div>
                 </div>`;
+            messagesDiv.scrollTop = 0;
         });
 
         quickChips.forEach(chip => {
@@ -192,8 +234,23 @@
             }
         });
 
+        function saveMessageToStorage(role, text) {
+            try {
+                let history = JSON.parse(localStorage.getItem(ADMIN_STORAGE_KEY)) || [];
+                history.push({ role: role, text: text });
+                // Giới hạn 50 tin nhắn gần nhất để tránh tràn localStorage
+                if (history.length > 50) {
+                    history = history.slice(-50);
+                }
+                localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(history));
+            } catch (e) {
+                console.warn("Không thể lưu tin nhắn vào localStorage:", e);
+            }
+        }
+
         function formatMarkdown(text) {
             if (!text) return "";
+            const linkRegex = new RegExp('\\[([^\\]]+)\\]\\(([^)]+)\\)', 'g');
             let html = text
                 // Headers
                 .replace(/^### (.*$)/gim, '<h6 class="fw-bold mt-2 mb-1 text-primary">$1</h6>')
@@ -203,8 +260,8 @@
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
                 // Code block / Inline code
                 .replace(/`([^`]+)`/g, '<code class="bg-light text-danger px-1 rounded border">$1</code>')
-                // Markdown Links [text](url) -> <a href="url" class="btn btn-sm btn-outline-primary py-0 px-1">text</a>
-                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="fw-bold text-decoration-none badge bg-primary text-white ms-1">$1</a>')
+                // Markdown Links [text](url) -> badge button link
+                .replace(linkRegex, '<a href="$2" class="fw-bold text-decoration-none badge bg-primary text-white ms-1 p-2 shadow-sm d-inline-flex align-items-center gap-1">$1 <i class="fas fa-external-link-alt" style="font-size: 0.7rem;"></i></a>')
                 // Lists
                 .replace(/^\s*-\s+(.*$)/gim, '<div class="d-flex align-items-start mb-1"><span class="me-2 text-primary">•</span><div>$1</div></div>')
                 // Line breaks
@@ -213,7 +270,7 @@
             return html;
         }
 
-        function appendMessage(sender, text) {
+        function appendMessage(sender, text, shouldSave = true) {
             const isUser = (sender === 'user');
             const wrapper = document.createElement("div");
             wrapper.className = isUser ? "d-flex justify-content-end mb-3" : "d-flex mb-3";
@@ -233,6 +290,10 @@
 
             messagesDiv.appendChild(wrapper);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            if (shouldSave) {
+                saveMessageToStorage(sender, text);
+            }
         }
 
         function appendLoading() {
@@ -250,7 +311,7 @@
         }
 
         async function sendMessage(text) {
-            appendMessage('user', text);
+            appendMessage('user', text, true);
             const loadingEl = appendLoading();
             sendBtn.disabled = true;
 
@@ -258,7 +319,8 @@
                 const response = await fetch('/admin/api/ai/chat', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        [form.dataset.csrfHeader]: form.dataset.csrfToken
                     },
                     body: JSON.stringify({ message: text })
                 });
@@ -272,12 +334,12 @@
                 }
 
                 const data = await response.json();
-                appendMessage('ai', data.reply || "Không có phản hồi từ hệ thống.");
+                appendMessage('ai', data.reply || "Không có phản hồi từ hệ thống.", true);
             } catch (err) {
                 if (loadingEl && loadingEl.parentNode) {
                     loadingEl.remove();
                 }
-                appendMessage('ai', "⚠️ Đã xảy ra sự cố khi gọi Admin Copilot: " + err.message + ". Vui lòng thử lại sau.");
+                appendMessage('ai', "⚠️ Đã xảy ra sự cố khi gọi Admin Copilot: " + err.message + ". Vui lòng thử lại sau.", true);
             } finally {
                 sendBtn.disabled = false;
                 input.focus();

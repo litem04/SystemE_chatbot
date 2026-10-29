@@ -7,6 +7,7 @@ import com.da.da.entity.Product;
 import jakarta.persistence.LockModeType;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -19,6 +20,16 @@ import java.util.Optional;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
+
+    @Query("SELECT p FROM Product p " +
+           "WHERE (cast(:keyword as string) IS NULL OR LOWER(p.name) LIKE CONCAT('%', LOWER(cast(:keyword as string)), '%')) " +
+           "AND (cast(:category as string) IS NULL OR LOWER(p.productCategory) = LOWER(cast(:category as string)))")
+    Page<Product> searchAdminProducts(@Param("keyword") String keyword,
+                                      @Param("category") String category,
+                                      Pageable pageable);
+
+    @Query("SELECT p FROM Product p WHERE p.stock <= :threshold ORDER BY p.stock ASC")
+    List<Product> findLowStockProducts(@Param("threshold") int threshold, Pageable pageable);
     
     // Khóa bi quan (Pessimistic Write Lock) ngăn chặn overselling khi nhiều giao dịch checkout đồng thời
     @Lock(LockModeType.PESSIMISTIC_WRITE)

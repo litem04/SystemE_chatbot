@@ -1,34 +1,29 @@
 package com.da.da.controller;
 
-import com.da.da.entity.Customer;
 import com.da.da.entity.Product;
 import com.da.da.entity.ProductReview;
-import com.da.da.repository.ProductReviewRepository;
-import com.da.da.service.CustomUserDetailsService;
 import com.da.da.service.ProductService;
+import com.da.da.service.ReviewService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
-import java.util.Date;
 import java.util.List;
 
 @Controller
 public class HomeController {
 
-    private final ProductReviewRepository productReviewRepository;
-    private final CustomUserDetailsService customerService;
+    private final ReviewService reviewService;
     private final ProductService productService;
 
-    public HomeController(ProductReviewRepository productReviewRepository,
-                          CustomUserDetailsService customerService,
+    public HomeController(ReviewService reviewService,
                           ProductService productService) {
-        this.productReviewRepository = productReviewRepository;
-        this.customerService = customerService;
+        this.reviewService = reviewService;
         this.productService = productService;
     }
 
@@ -55,12 +50,22 @@ public class HomeController {
     }
 
     @GetMapping("/product/{id}")
-    public String viewProductDetails(@PathVariable Long id, Model model) {
+    public String viewProductDetails(@PathVariable Long id, Model model, Principal principal) {
         Product product = productService.findById(id);
         if (product != null) {
             model.addAttribute("product", product);
-            List<ProductReview> reviews = productReviewRepository.findByProductId(id);
+
+            List<ProductReview> reviews = reviewService.getReviewsForProduct(id);
             model.addAttribute("reviews", reviews);
+            model.addAttribute("avgRating", reviewService.getAverageRating(id));
+            model.addAttribute("reviewCount", reviewService.getReviewCount(id));
+
+            boolean hasPurchased = false;
+            if (principal != null) {
+                hasPurchased = reviewService.hasUserPurchased(principal.getName(), id);
+            }
+            model.addAttribute("hasPurchased", hasPurchased);
+            model.addAttribute("isLoggedIn", principal != null);
 
             List<Product> recommendedProducts = productService.getDynamicAccessories(product);
             if (recommendedProducts != null && !recommendedProducts.isEmpty()) {
@@ -76,23 +81,19 @@ public class HomeController {
     public String saveReview(@RequestParam("productId") Long productId,
                              @RequestParam("comment") String comment,
                              @RequestParam("rating") Integer rating,
-                             Principal principal) {
+                             Principal principal,
+                             RedirectAttributes ra) {
         if (principal == null) {
             return "redirect:/login";
         }
 
-        Product product = productService.findById(productId);
-        String email = principal.getName();
-        Customer customer = customerService.findByEmail(email);
-
-        if (product != null && customer != null) {
-            ProductReview review = new ProductReview();
-            review.setProduct(product);
-            review.setCustomer(customer);
-            review.setComment(comment);
-            review.setRating(rating);
-            review.setDate(new Date());
-            productReviewRepository.save(review);
+        try {
+            reviewService.saveReview(productId, principal.getName(), comment, rating);
+            ra.addFlashAttribute("reviewSuccess", "Cảm ơn bạn đã gửi đánh giá sản phẩm!");
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("reviewError", e.getMessage());
+        } catch (Exception e) {
+            ra.addFlashAttribute("reviewError", "Không thể gửi đánh giá: " + e.getMessage());
         }
 
         return "redirect:/product/" + productId;

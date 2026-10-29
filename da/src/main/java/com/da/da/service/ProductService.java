@@ -51,6 +51,14 @@ public class ProductService {
                         product.getDiscountPrice(), product.getPrice()));
             }
         }
+        if (product.getMrpPrice() != null && product.getPrice() != null
+                && product.getMrpPrice().compareTo(product.getPrice()) < 0) {
+            throw new IllegalArgumentException("Giá niêm yết không được thấp hơn giá bán.");
+        }
+        if (product.getDiscountLimit() != null && product.getDiscountSold() != null
+                && product.getDiscountLimit() < product.getDiscountSold()) {
+            throw new IllegalArgumentException("Giới hạn flash sale không được thấp hơn số lượng đã bán.");
+        }
     }
 
     @Transactional
@@ -142,8 +150,23 @@ public class ProductService {
         return productRepository.findAll();
     }
 
+    @Transactional(readOnly = true)
+    public Page<Product> searchAdminProducts(String keyword, String category, int page, int size) {
+        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
+        String normalizedCategory = category == null || category.isBlank() ? null : category.trim();
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(1, Math.min(size, 100));
+        return productRepository.searchAdminProducts(normalizedKeyword, normalizedCategory,
+                PageRequest.of(safePage, safeSize, org.springframework.data.domain.Sort.by("id").descending()));
+    }
+
     public long countProducts() {
         return productRepository.count();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Product> getLowStockProducts(int threshold) {
+        return productRepository.findLowStockProducts(threshold, PageRequest.of(0, 10));
     }
 
     public List<Product> searchByName(String keyword) {

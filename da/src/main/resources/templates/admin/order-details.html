@@ -73,10 +73,11 @@
 					        <select name="status" class="form-select mb-3" 
 					                th:disabled="${order.orderStatusName == 'CANCELLED' or order.orderStatusName == 'DELIVERED'}">
 		                        <option value="WAITING_FOR_PAYMENT" th:selected="${order.orderStatusName == 'WAITING_FOR_PAYMENT'}">Chờ thanh toán</option>
-					            <option value="PENDING" th:selected="${order.orderStatusName == 'PENDING'}">Chờ xử lý</option>
-					            <option value="SHIPPED" th:selected="${order.orderStatusName == 'SHIPPED'}">Đang giao</option>
-					            <option value="DELIVERED" th:selected="${order.orderStatusName == 'DELIVERED'}">Đã giao hàng</option>
-					            <option value="CANCELLED" th:selected="${order.orderStatusName == 'CANCELLED'}">Hủy đơn</option>
+					            <option value="PENDING" th:selected="${order.orderStatusName == 'PENDING'}">Chờ xử lý (Đã tiếp nhận)</option>
+					            <option value="PROCESSING" th:selected="${order.orderStatusName == 'PROCESSING'}">Đang đóng gói / Chuẩn bị hàng</option>
+					            <option value="SHIPPED" th:selected="${order.orderStatusName == 'SHIPPED'}">Đang giao hàng</option>
+					            <option value="DELIVERED" th:selected="${order.orderStatusName == 'DELIVERED'}">Đã giao hàng (Hoàn tất)</option>
+					            <option value="CANCELLED" th:selected="${order.orderStatusName == 'CANCELLED'}">Hủy đơn hàng</option>
 					        </select>
 
 					        <button type="submit" class="btn btn-primary w-100" 

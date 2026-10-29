@@ -29,6 +29,8 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
 
     Page<Order> findByEmailIdOrderByIdDesc(String emailId, Pageable pageable);
 
+    Page<Order> findByOrderStatusOrderByIdDesc(OrderStatus orderStatus, Pageable pageable);
+
     List<Order> findByOrderStatus(OrderStatus orderStatus);
 
     List<Order> findByPaymentStatusOrderByIdDesc(PaymentStatus paymentStatus);
@@ -41,6 +43,9 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
     // Tính tổng doanh thu trực tiếp từ Database
     @Query("SELECT COALESCE(SUM(o.productTotalPrice), 0) FROM Order o WHERE o.orderStatus = com.da.da.entity.enums.OrderStatus.DELIVERED")
     BigDecimal calculateTotalRevenue();
+
+    @Query("SELECT COALESCE(SUM(o.productTotalPrice), 0) FROM Order o WHERE o.orderStatus = com.da.da.entity.enums.OrderStatus.SHIPPED")
+    BigDecimal calculateShippingRevenue();
 
     // Thống kê doanh thu theo ngày từ Database thay vì tải toàn bộ orders lên RAM
     @Query(value = "SELECT TO_CHAR(o.order_date, 'DD/MM') AS orderDay, COALESCE(SUM(o.product_total_price), 0) AS totalAmount " +

@@ -23,29 +23,22 @@ public class RegisterRequest {
     @Email(message = "Email không đúng định dạng")
     private String email;
 
-    private String mobileNumber;
-
+    @NotBlank(message = "Số điện thoại không được để trống")
+    @Pattern(regexp = "^(0|\\+84)[0-9]{9,10}$", message = "Số điện thoại không hợp lệ (cần 10 số, bắt đầu bằng 0 hoặc +84).")
     private String phone;
 
     @NotBlank(message = "Mật khẩu không được để trống")
     @Size(min = 6, max = 50, message = "Mật khẩu phải có từ 6 đến 50 ký tự")
     private String password;
 
-    private String gender;
+    @Builder.Default
+    private String gender = "Nam";
 
+    @NotBlank(message = "Địa chỉ không được để trống")
     private String address;
 
     private String addressType;
 
-    private String pincode;
-
+    @NotBlank(message = "Mã bưu điện không được để trống")
     private String pinCode;
-
-    public String getEffectiveMobileNumber() {
-        return (mobileNumber != null && !mobileNumber.isBlank()) ? mobileNumber : phone;
-    }
-
-    public String getEffectivePincode() {
-        return (pincode != null && !pincode.isBlank()) ? pincode : pinCode;
-    }
 }

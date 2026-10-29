@@ -35,7 +35,9 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         Customer customer = customerRepo.findByEmail(email);
         if (customer != null) {
+            boolean isLocked = Boolean.TRUE.equals(customer.getIsLocked());
             return new User(customer.getEmail(), customer.getPassword(),
+                    !isLocked, true, true, !isLocked,
                     Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
         }
 
@@ -59,5 +61,22 @@ public class CustomUserDetailsService implements UserDetailsService {
         curCustomer.setAddress(formCustomer.getAddress());
         curCustomer.setPinCode(formCustomer.getPinCode());
         customerRepo.save(curCustomer);
+    }
+
+    @Transactional
+    public void updateProfile(Customer curCustomer, com.da.da.dto.UpdateProfileRequest request) {
+        if (curCustomer == null || request == null) return;
+        curCustomer.setName(request.getName());
+        curCustomer.setPhone(request.getPhone());
+        curCustomer.setAddress(request.getAddress());
+        curCustomer.setGender(AuthService.normalizeGender(request.getGender()));
+        curCustomer.setPinCode(request.getPinCode());
+        customerRepo.save(curCustomer);
+    }
+
+    @Transactional(readOnly = true)
+    public Customer getActiveCustomer(String email) {
+        if (email == null) return null;
+        return customerRepo.findByEmail(email);
     }
 }

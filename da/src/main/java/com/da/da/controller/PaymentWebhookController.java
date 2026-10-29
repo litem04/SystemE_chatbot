@@ -12,12 +12,17 @@ import jakarta.validation.Valid;
 public class PaymentWebhookController {
 
     private final PaymentWebhookService webhookService;
-
-    @Value("${payment.webhook.secret}")
-    private String configuredSecret;
+    private final String configuredSecret;
 
     public PaymentWebhookController(PaymentWebhookService webhookService) {
+        this(webhookService, "dev_secret_key_change_me_in_prod");
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public PaymentWebhookController(PaymentWebhookService webhookService,
+                                    @Value("${payment.webhook.secret:dev_secret_key_change_me_in_prod}") String configuredSecret) {
         this.webhookService = webhookService;
+        this.configuredSecret = configuredSecret;
     }
 
     @PostMapping("/vietqr")

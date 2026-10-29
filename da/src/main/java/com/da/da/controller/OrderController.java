@@ -1,12 +1,8 @@
 package com.da.da.controller;
 
-import com.da.da.entity.Cart;
 import com.da.da.entity.Customer;
 import com.da.da.entity.Order;
 import com.da.da.entity.OrderDetail;
-import com.da.da.repository.CartRepository;
-import com.da.da.repository.OrderDetailRepository;
-import com.da.da.repository.OrderRepository;
 import com.da.da.dto.PlaceOrderRequest;
 import com.da.da.service.CartService;
 import com.da.da.service.OrderService;
@@ -16,7 +12,6 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,32 +22,21 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.ByteArrayInputStream;
-import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 @Controller
 public class OrderController {
 
-    private final CartRepository cartRepository;
-    private final OrderRepository orderRepository;
-    private final OrderDetailRepository orderDetailRepository;
     private final OrderService orderService;
     private final CartService cartService;
     private final PaymentService paymentService;
     private final PdfService pdfService;
 
-    public OrderController(CartRepository cartRepository,
-                           OrderRepository orderRepository,
-                           OrderDetailRepository orderDetailRepository,
-                           OrderService orderService,
+    public OrderController(OrderService orderService,
                            CartService cartService,
                            PaymentService paymentService,
                            PdfService pdfService) {
-        this.cartRepository = cartRepository;
-        this.orderRepository = orderRepository;
-        this.orderDetailRepository = orderDetailRepository;
         this.orderService = orderService;
         this.cartService = cartService;
         this.paymentService = paymentService;
@@ -64,22 +48,11 @@ public class OrderController {
         Customer user = (Customer) session.getAttribute("user");
         if (user == null) return "redirect:/login";
 
-        List<Cart> allItems = cartRepository.findByCustomerIdOrderByIdAsc(Long.valueOf(user.getId()));
-        List<Cart> validItems = new ArrayList<>();
-        BigDecimal grandTotal = BigDecimal.ZERO;
+        CartService.CartViewDto cartView = cartService.getCartView(Long.valueOf(user.getId()));
+        if (cartView.cartItems().isEmpty()) return "redirect:/cart";
 
-        for (Cart item : allItems) {
-            if (item.getProduct() != null) {
-                validItems.add(item);
-                BigDecimal lineTotal = cartService.calculateMixedTotal(item.getProduct(), item.getQuantity() != null ? item.getQuantity() : 1);
-                grandTotal = grandTotal.add(lineTotal);
-            }
-        }
-
-        if (validItems.isEmpty()) return "redirect:/cart";
-
-        model.addAttribute("cartItems", validItems);
-        model.addAttribute("grandTotal", grandTotal);
+        model.addAttribute("cartItems", cartView.cartItems());
+        model.addAttribute("grandTotal", cartView.grandTotal());
         model.addAttribute("user", user);
 
         return "client/checkout";
@@ -132,7 +105,7 @@ public class OrderController {
         Customer user = (Customer) session.getAttribute("user");
         if (user == null) return "redirect:/login";
 
-        Page<Order> myOrders = orderRepository.findByEmailIdOrderByIdDesc(user.getEmail(), PageRequest.of(page, size));
+        Page<Order> myOrders = orderService.getOrdersByCustomer(user.getEmail(), page, size);
         model.addAttribute("orders", myOrders.getContent());
         model.addAttribute("page", myOrders);
         return "client/my-orders";
@@ -143,12 +116,12 @@ public class OrderController {
         Customer user = (Customer) session.getAttribute("user");
         if (user == null) return "redirect:/login";
 
-        Order order = orderRepository.findById(id).orElse(null);
-        if (order == null || !user.getEmail().equalsIgnoreCase(order.getEmailId())) {
+        Order order = orderService.getOrderForCustomer(id, user.getEmail());
+        if (order == null) {
             return "redirect:/my-orders";
         }
 
-        List<OrderDetail> details = orderDetailRepository.findByOrder(order);
+        List<OrderDetail> details = orderService.getOrderDetails(order);
         model.addAttribute("order", order);
         model.addAttribute("details", details);
 
@@ -160,8 +133,8 @@ public class OrderController {
         Customer user = (Customer) session.getAttribute("user");
         if (user == null) return "redirect:/login";
 
-        Order order = orderRepository.findById(id).orElse(null);
-        if (order == null || !user.getEmail().equalsIgnoreCase(order.getEmailId())) {
+        Order order = orderService.getOrderForCustomer(id, user.getEmail());
+        if (order == null) {
             ra.addFlashAttribute("errorMessage", "Không tìm thấy đơn hàng!");
             return "redirect:/my-orders";
         }
@@ -222,16 +195,12 @@ public class OrderController {
             return ResponseEntity.status(401).build();
         }
 
-        Order order = orderRepository.findById(id).orElse(null);
+        Order order = orderService.getOrderForCustomer(id, user.getEmail());
         if (order == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        if (order.getEmailId() == null || !order.getEmailId().equalsIgnoreCase(user.getEmail())) {
             return ResponseEntity.status(403).build();
         }
 
-        List<OrderDetail> orderDetails = orderDetailRepository.findByOrder(order);
+        List<OrderDetail> orderDetails = orderService.getOrderDetails(order);
         ByteArrayInputStream bis = pdfService.exportInvoicePdf(order, orderDetails);
 
         if (bis == null) {

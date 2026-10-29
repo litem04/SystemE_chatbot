@@ -64,21 +64,28 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.sameOrigin())
+                .xssProtection(org.springframework.security.config.Customizer.withDefaults())
+            )
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/api/webhook/**")
+                .ignoringRequestMatchers("/api/webhook/**", "/api/ai/chat")
             )
             .authorizeHttpRequests(auth -> auth
                 // 1. Static resources
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/product-images/**", "/webjars/**", "/favicon.ico").permitAll()
-                // 2. Public view pages & Search
-                .requestMatchers("/", "/login", "/register", "/search", "/product/**", "/products/**", "/order-success").permitAll()
+                // 2. Public view pages, Error & Search
+                .requestMatchers("/", "/login", "/register", "/search", "/product/**", "/products/**", "/order-success", "/error").permitAll()
                 // 3. Public APIs (Chatbot, Translate, Webhook)
                 .requestMatchers("/api/webhook/**", "/api/ai/chat", "/api/translate").permitAll()
                 // 4. Role-based Protected areas
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/cart/**", "/checkout", "/place-order", "/my-orders/**", "/profile", "/update-profile", "/save-review", "/download-invoice/**", "/api/order/status/**").hasRole("USER")
+                .requestMatchers("/cart/**", "/checkout", "/place-order", "/my-orders/**", "/profile", "/update-profile", "/save-review", "/download-invoice/**", "/api/order/status/**").hasAnyRole("USER", "ADMIN")
                 // 5. Fail-Closed: Chặn toàn bộ route còn lại, bắt buộc phải authenticated
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(ex -> ex
+                .accessDeniedPage("/login?accessDenied")
             )
             .formLogin(form -> form
                 .loginPage("/login")
@@ -91,7 +98,7 @@ public class SecurityConfig {
                 .sessionRegistry(sessionRegistry())
             )
             .logout(logout -> logout
-                .logoutRequestMatcher(new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/logout", "POST"))
+                .logoutRequestMatcher(new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/logout", "GET"))
                 .logoutSuccessUrl("/login?logout")
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID")

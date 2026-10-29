@@ -35,4 +35,8 @@ public class Customer {
 
     @Column(name = "pin_code")
     private String pinCode;
+
+    @Column(name = "is_locked")
+    @Builder.Default
+    private Boolean isLocked = false;
 }

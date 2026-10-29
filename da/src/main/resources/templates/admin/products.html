@@ -19,6 +19,25 @@
             </a>
         </div>
     </div>
+
+	<div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+	<div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+	<form action="/admin/products" method="get" class="row g-2 mb-3">
+		<div class="col-md-5">
+			<input class="form-control" type="search" name="keyword" th:value="${keyword}" placeholder="Tìm theo tên sản phẩm">
+		</div>
+		<div class="col-md-3">
+			<select class="form-select" name="category">
+				<option value="">Tất cả danh mục</option>
+				<option value="Mobile" th:selected="${selectedCategory == 'Mobile'}">Điện thoại</option>
+				<option value="Laptop" th:selected="${selectedCategory == 'Laptop'}">Laptop</option>
+				<option value="Accessories" th:selected="${selectedCategory == 'Accessories'}">Phụ kiện</option>
+			</select>
+		</div>
+		<div class="col-auto"><button class="btn btn-primary" type="submit"><i class="fas fa-search me-1"></i>Lọc</button></div>
+		<div class="col-auto"><a class="btn btn-outline-secondary" href="/admin/products">Xóa lọc</a></div>
+	</form>
 	<div class="mb-3 d-flex gap-2">
 	    <a th:href="@{/admin/products}" class="btn btn-sm" 
 	       th:classappend="${selectedCategory == null} ? 'btn-dark' : 'btn-outline-dark'">
@@ -37,7 +56,8 @@
 	        <i class="fas fa-headphones me-1"></i> Phụ kiện
 	    </a>
 	</div>
-    <table class="table table-bordered table-hover align-middle text-center">
+	<div class="table-responsive">
+	<table class="table table-bordered table-hover align-middle text-center bg-white">
         <thead class="table-dark">
         <tr>
            
@@ -45,8 +65,9 @@
             <th>Tên sản phẩm</th>
             <th>Giá</th>
             <th>Danh mục</th>
-            <th>Kho</th>  
-	
+			<th>Kho</th>
+			<th>Thao tác</th>
+		</tr>
         </thead>
 		<tbody>
 		<tr th:each="p : ${products}">
@@ -84,8 +105,21 @@
                 </form>
 		    </td>
 		</tr>
+		<tr th:if="${products.isEmpty()}"><td colspan="6" class="text-center text-muted py-4">Không có sản phẩm phù hợp.</td></tr>
 		</tbody>
     </table>
+	</div>
+	<nav th:if="${page.totalPages > 1}" aria-label="Product pages">
+		<ul class="pagination justify-content-end">
+			<li class="page-item" th:classappend="${page.first} ? 'disabled'">
+				<a class="page-link" th:href="@{/admin/products(page=${page.number - 1},size=${page.size},keyword=${keyword},category=${selectedCategory})}">Trước</a>
+			</li>
+			<li class="page-item disabled"><span class="page-link" th:text="${page.number + 1} + ' / ' + ${page.totalPages}"></span></li>
+			<li class="page-item" th:classappend="${page.last} ? 'disabled'">
+				<a class="page-link" th:href="@{/admin/products(page=${page.number + 1},size=${page.size},keyword=${keyword},category=${selectedCategory})}">Sau</a>
+			</li>
+		</ul>
+	</nav>
 </div>
 </body>
 </html>
