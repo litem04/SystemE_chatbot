@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:16
@@ -40,8 +38,26 @@ services:
     depends_on:
       - db
       - vector-db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/techgear_db
+      - SPRING_DATASOURCE_USERNAME=user
+      - SPRING_DATASOURCE_PASSWORD=password
+      - VECTOR_DB_HOST=vector-db
+      - VECTOR_DB_PORT=5432
+      - VECTOR_DB_USER=postgres
+      - VECTOR_DB_PASSWORD=postgres
+      - VECTOR_DB_NAME=chatbot_rag
     volumes:
       - ./product-images:/app/product-images
+    networks:
+      - techgear-network
+
+  adminer:
+    image: adminer:latest
+    container_name: techgear_adminer
+    restart: always
+    ports:
+      - "8080:8080"
     networks:
       - techgear-network
 

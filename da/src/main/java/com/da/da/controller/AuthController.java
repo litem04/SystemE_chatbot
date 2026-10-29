@@ -1,275 +1,151 @@
-//package com.da.da.controller;
-//
-//
-//import jakarta.servlet.http.HttpSession;
-//import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.stereotype.Controller;
-//import org.springframework.ui.Model;
-//import org.springframework.web.bind.annotation.GetMapping;
-//import org.springframework.web.bind.annotation.ModelAttribute;
-//import org.springframework.web.bind.annotation.PostMapping;
-//import org.springframework.web.bind.annotation.RequestParam;
-//import com.da.da.entity.Customer;
-//import com.da.da.entity.Admin;
-//import com.da.da.repository.CustomerRepository;
-//import com.da.da.repository.AdminRepository;
-//import java.util.Date;
-//
-//@Controller
-//public class AuthController {
-//
-//    @Autowired
-//    private CustomerRepository customerRepository;
-//
-//    // 1. Hiển thị trang Đăng ký (GET)
-//    @GetMapping("/register")
-//    public String showRegisterForm(Model model) {
-//        model.addAttribute("customer", new Customer()); // Gửi một object rỗng sang form
-//        return "client/customer-register"; // Trả về file customer-register.html
-//    }
-//
-//    // 2. Xử lý Đăng ký (POST) - Đây là phần thay thế cho hàm doPost trong Servlet cũ
-//    @PostMapping("/register")
-//    public String registerCustomer(@ModelAttribute Customer customer, HttpSession session) {
-//        try {
-//            // Kiểm tra email đã tồn tại chưa
-//            Customer existingCustomer = customerRepository.findByEmail(customer.getEmail());
-//            if (existingCustomer != null) {
-//                session.setAttribute("fail-message", "Email này đã được đăng ký!");
-//                return "redirect:/register";
-//            }
-//
-//            // Gán ngày tạo (nếu form không gửi lên)
-//            customer.setAddedDate(new Date());
-//
-//            // Lưu vào Database (Thay thế đoạn SQL Insert thủ công)
-//            customerRepository.save(customer);
-//
-//            // Thông báo thành công
-//            session.setAttribute("success-message", "Đăng ký thành công! Vui lòng đăng nhập.");
-//            return "redirect:/login"; // Chuyển hướng sang trang đăng nhập
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            session.setAttribute("fail-message", "Đăng ký thất bại: " + e.getMessage());
-//            return "redirect:/register";
-//        }
-//    }
-//    
-//    // 3. Hiển thị trang Đăng nhập (GET) - Để redirect sang sau khi đăng ký xong
-////    @GetMapping("/login")
-////    public String showLoginForm() {
-////        return "client/customer-login";
-////    }
-//    @Autowired private CustomerRepository customerRepo;
-//    @Autowired private AdminRepository adminRepo;
-//
-//    // --- PHẦN 1: KHÁCH HÀNG (CUSTOMER) ---
-//
-//    // Hiện form login khách
-//    @GetMapping("/login")
-//    public String showCustomerLogin() {
-//        return "client/customer-login"; // Trả về file html
-//    }
-//
-//    // Xử lý login khách (Thay thế CustomerLogin Servlet)
-//    @PostMapping("/login")
-//    public String processCustomerLogin(@RequestParam String email, 
-//                                       @RequestParam String password, 
-//                                       HttpSession session, 
-//                                       Model model) {
-//        // 1. Tìm trong DB
-//        Customer customer = customerRepo.findByEmail(email);
-//
-//        // 2. Kiểm tra mật khẩu (Lưu ý: Đang so sánh plain text theo DB của bạn)
-//        if (customer != null && customer.getPassword().equals(password)) {
-//            // Đúng mật khẩu -> Lưu session
-//            session.setAttribute("user", customer);
-//            session.setAttribute("role", "CUSTOMER");
-//            return "redirect:/"; // Về trang chủ
-//        } else {
-//            // Sai -> Báo lỗi
-//            model.addAttribute("error", "Sai email hoặc mật khẩu!");
-//            return "client/customer-login";
-//        }
-//    }
-//
-//    // --- PHẦN 2: QUẢN TRỊ VIÊN (ADMIN) ---
-//
-//    // Hiện form login admin
-//    @GetMapping("/admin/login")
-//    public String showAdminLogin() {
-//        return "admin/admin-login"; // Trả về file html
-//    }
-//
-//    // Xử lý login admin (Thay thế AdminLogin Servlet)
-//    @PostMapping("/admin/login")
-//    public String processAdminLogin(@RequestParam String email, 
-//                                    @RequestParam String password, 
-//                                    HttpSession session, 
-//                                    Model model) {
-//        Admin admin = adminRepo.findByEmail(email);
-//
-//        if (admin != null && admin.getPassword().equals(password)) {
-//            session.setAttribute("admin", admin);
-//            session.setAttribute("role", "ADMIN");
-//            return "redirect:/admin/dashboard"; // Vào trang quản trị
-//        } else {
-//            model.addAttribute("error", "Sai tài khoản Admin!");
-//            return "admin/admin-login";
-//        }
-//    }
-//    
-
-//}
-
 package com.da.da.controller;
 
+import com.da.da.dto.RegisterRequest;
 import com.da.da.entity.Customer;
-import com.da.da.repository.CustomerRepository;
+import com.da.da.service.AuthService;
 import com.da.da.service.CustomUserDetailsService;
-
 import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
-import java.util.Date;
 
 @Controller
 public class AuthController {
 
-    @Autowired
-    private CustomerRepository customerRepository;
+    private final AuthService authService;
+    private final CustomUserDetailsService customerService;
+
+    public AuthController(AuthService authService,
+                          CustomUserDetailsService customerService) {
+        this.authService = authService;
+        this.customerService = customerService;
+    }
 
     @GetMapping("/register")
     public String showRegisterPage(Model model) {
-        // Không cần check session thủ công nữa, Spring tự lấy từ FlashAttributes bỏ vào Model
-        model.addAttribute("customer", new Customer());
+        if (!model.containsAttribute("customer")) {
+            RegisterRequest request = new RegisterRequest();
+            request.setGender("Nam");
+            model.addAttribute("customer", request);
+        }
         return "client/customer-register";
     }
 
     @PostMapping("/register")
-    public String registerCustomer(@ModelAttribute Customer customer, RedirectAttributes ra) {
+    public String registerCustomer(@Valid @ModelAttribute("customer") RegisterRequest request,
+                                   BindingResult bindingResult,
+                                   Model model,
+                                   RedirectAttributes ra) {
+        if (bindingResult.hasErrors()) {
+            return "client/customer-register";
+        }
+
         try {
-            Customer existingCustomer = customerRepository.findByEmail(customer.getEmail());
-            if (existingCustomer != null) {
-                // Dùng addFlashAttribute: Nó tự mất sau khi load xong trang, cực kỳ an toàn
-                ra.addFlashAttribute("failMessage", "Email này đã được đăng ký!");
-                return "redirect:/register";
-            }
-            customer.setAddedDate(new Date());
-            customerRepository.save(customer);
+            authService.register(request);
             ra.addFlashAttribute("successMessage", "Đăng ký thành công! Vui lòng đăng nhập.");
-            return "redirect:/login"; 
-        } catch (Exception e) {
-            e.printStackTrace();
-            ra.addFlashAttribute("failMessage", "Lỗi: " + e.getMessage());
-            return "redirect:/register";
-        }
-    }
-/*     @GetMapping("/register")
-    public String showRegisterPage(Model model, HttpSession session) {
-       
-    	if (session.getAttribute("fail-message") != null) {
-    	    String error = (String) session.getAttribute("fail-message");
-    	    
-    	    // SỬA DÒNG NÀY (Bỏ dấu gạch ngang):
-    	    model.addAttribute("failMessage", error); 
-    	    
-    	    session.removeAttribute("fail-message");
-    	}
-
-    	// Sửa key: "success-message" -> "successMessage"
-    	if (session.getAttribute("success-message") != null) {
-    	    String success = (String) session.getAttribute("success-message");
-    	    
-    	    // SỬA DÒNG NÀY (Bỏ dấu gạch ngang):
-    	    model.addAttribute("successMessage", success);
-    	    
-    	    session.removeAttribute("success-message");
-    	}
-
-        model.addAttribute("customer", new Customer()); // (Code cũ của bạn giữ nguyên)
-        return "client/customer-register";
-    }
-
-    @PostMapping("/register")
-    public String registerCustomer(@ModelAttribute Customer customer, HttpSession session) {
-        try {
-            Customer existingCustomer = customerRepository.findByEmail(customer.getEmail());
-            if (existingCustomer != null) {
-                session.setAttribute("fail-message", "Email này đã được đăng ký!");
-                return "redirect:/register";
+            return "redirect:/login";
+        } catch (IllegalArgumentException e) {
+            String msg = e.getMessage() != null ? e.getMessage() : "Dữ liệu không hợp lệ.";
+            if (msg.toLowerCase().contains("email")) {
+                bindingResult.rejectValue("email", "duplicate.email", msg);
+            } else if (msg.toLowerCase().contains("thoại") || msg.toLowerCase().contains("phone")) {
+                bindingResult.rejectValue("phone", "invalid.phone", msg);
+            } else {
+                model.addAttribute("failMessage", msg);
             }
-            customer.setAddedDate(new Date());
-            customerRepository.save(customer);
-            session.setAttribute("success-message", "Đăng ký thành công! Vui lòng đăng nhập.");
-            return "redirect:/login"; 
+            return "client/customer-register";
         } catch (Exception e) {
-            e.printStackTrace();
-            session.setAttribute("fail-message", "Lỗi: " + e.getMessage());
-            return "redirect:/register";
+            model.addAttribute("failMessage", "Lỗi đăng ký: " + e.getMessage());
+            return "client/customer-register";
         }
-    } */
-    
-    
+    }
 
-    // --- 2. ĐĂNG NHẬP (Chỉ giữ lại 1 hàm hiện Form) ---
-    // Spring Security sẽ tự xử lý POST tại /do-login, bạn không cần viết Controller cho nó
-    
     @GetMapping("/login")
     public String showLoginForm() {
-        return "client/customer-login"; // Trỏ về file html đăng nhập chung
+        return "client/customer-login";
     }
 
-	  // --- ĐĂNG XUẤT CHUNG ---
-	  @GetMapping("/logout")
-	  public String logout(HttpSession session) {
-	      session.invalidate(); // Xóa sạch session
-	      return "redirect:/";
-	  }
-	  @Autowired
-	    private CustomUserDetailsService customerService;
-	 // 1. Hiển thị trang hồ sơ
-	    @GetMapping("/profile")
-	    public String showProfile(Model model, Principal principal) {
-	        if (principal == null) {
-	            return "redirect:/login"; // Chưa đăng nhập thì đá về login
-	        }
-	        
-	        String email = principal.getName(); // Lấy email người đang đăng nhập
-	        Customer customer = customerService.findByEmail(email);
-	        
-	        model.addAttribute("customer", customer);
-	        model.addAttribute("title", "Hồ sơ cá nhân");
-	        return "client/profile"; // Trả về file HTML profile (bạn cần tạo file này)
-	    }
 
-	    // 2. Xử lý cập nhật hồ sơ
-	    @PostMapping("/update-profile")
-	    public String updateProfile(@ModelAttribute("customer") Customer formCustomer, 
-	                                Principal principal, 
-	                                Model model) {
-	        if (principal == null) {
-	            return "redirect:/login";
-	        }
 
-	        String email = principal.getName();
-	        Customer currentCustomer = customerService.findByEmail(email);
+    @GetMapping("/profile")
+    public String showProfile(Model model, Principal principal) {
+        if (principal == null) {
+            return "redirect:/login";
+        }
 
-	        // Gọi service để update
-	        // Lưu ý: customerService cần logic mapping dữ liệu như Bước 1
-	        customerService.updateProfile(currentCustomer, formCustomer); 
-	        
-	        model.addAttribute("message", "Cập nhật thông tin thành công!");
-	        model.addAttribute("customer", currentCustomer); // Load lại data mới
-	        
-	        return "client/profile"; // Ở lại trang và báo thành công
-	    }
+        String email = principal.getName();
+        Customer customer = customerService.findByEmail(email);
+        if (customer == null) {
+            return "redirect:/login";
+        }
+
+        com.da.da.dto.UpdateProfileRequest profileRequest = com.da.da.dto.UpdateProfileRequest.builder()
+                .email(customer.getEmail())
+                .name(customer.getName())
+                .phone(customer.getPhone())
+                .address(customer.getAddress())
+                .gender(customer.getGender())
+                .pinCode(customer.getPinCode())
+                .build();
+
+        model.addAttribute("customer", profileRequest);
+        model.addAttribute("title", "Hồ sơ cá nhân");
+        return "client/profile";
+    }
+
+    @PostMapping("/update-profile")
+    public String updateProfile(@Valid @ModelAttribute("customer") com.da.da.dto.UpdateProfileRequest formRequest,
+                                BindingResult bindingResult,
+                                Principal principal,
+                                Model model) {
+        if (principal == null) {
+            return "redirect:/login";
+        }
+
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("failMessage", bindingResult.getAllErrors().get(0).getDefaultMessage());
+            model.addAttribute("customer", formRequest);
+            return "client/profile";
+        }
+
+        String email = principal.getName();
+        Customer currentCustomer = customerService.findByEmail(email);
+        if (currentCustomer == null) {
+            return "redirect:/login";
+        }
+
+        customerService.updateProfile(currentCustomer, formRequest);
+
+        model.addAttribute("message", "Cập nhật thông tin thành công!");
+        model.addAttribute("customer", formRequest);
+        return "client/profile";
+    }
+
+    @PostMapping("/change-password")
+    public String changePassword(@RequestParam("oldPassword") String oldPassword,
+                                 @RequestParam("newPassword") String newPassword,
+                                 @RequestParam("confirmPassword") String confirmPassword,
+                                 Principal principal,
+                                 RedirectAttributes ra) {
+        if (principal == null) {
+            return "redirect:/login";
+        }
+        try {
+            authService.changePassword(principal.getName(), oldPassword, newPassword, confirmPassword);
+            ra.addFlashAttribute("pwdSuccess", "Đổi mật khẩu thành công!");
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("pwdError", e.getMessage());
+        } catch (Exception e) {
+            ra.addFlashAttribute("pwdError", "Lỗi đổi mật khẩu: " + e.getMessage());
+        }
+        return "redirect:/profile";
+    }
 }

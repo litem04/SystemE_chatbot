@@ -1,214 +1,273 @@
 package com.da.da.service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import com.da.da.entity.Product;
+import com.da.da.entity.ProductImage;
+import com.da.da.repository.ProductImageRepository;
+import com.da.da.repository.ProductRepository;
+import com.da.da.repository.ProductReviewRepository;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import com.da.da.dto.ProductRequestDTO;
+import java.util.Date;
 
-import com.da.da.entity.Product;
-import com.da.da.repository.ProductRepository;
-
-import dev.langchain4j.agent.tool.Tool;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
 
-    @Autowired
-    private ProductRepository productRepository;
-    
-    // ==========================================
-    // 2 HÀM MỚI THÊM ĐỂ PHỤC VỤ PRODUCT CONTROLLER
-    // ==========================================
+    private final ProductRepository productRepository;
+    private final ProductImageRepository productImageRepository;
+    private final ProductReviewRepository reviewRepository;
+    private final FileStorageService fileStorageService;
+
+    public ProductService(ProductRepository productRepository,
+                          ProductImageRepository productImageRepository,
+                          ProductReviewRepository reviewRepository,
+                          FileStorageService fileStorageService) {
+        this.productRepository = productRepository;
+        this.productImageRepository = productImageRepository;
+        this.reviewRepository = reviewRepository;
+        this.fileStorageService = fileStorageService;
+    }
+
+    private void validateProductPrices(Product product) {
+        if (product == null) return;
+        if (product.getPrice() != null && product.getPrice().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Giá gốc của sản phẩm không được âm.");
+        }
+        if (product.getDiscountPrice() != null && product.getDiscountPrice().compareTo(BigDecimal.ZERO) > 0) {
+            if (product.getPrice() == null || product.getDiscountPrice().compareTo(product.getPrice()) > 0) {
+                throw new IllegalArgumentException(String.format("Giá khuyến mãi (%s) không được lớn hơn giá gốc (%s).",
+                        product.getDiscountPrice(), product.getPrice()));
+            }
+        }
+        if (product.getMrpPrice() != null && product.getPrice() != null
+                && product.getMrpPrice().compareTo(product.getPrice()) < 0) {
+            throw new IllegalArgumentException("Giá niêm yết không được thấp hơn giá bán.");
+        }
+        if (product.getDiscountLimit() != null && product.getDiscountSold() != null
+                && product.getDiscountLimit() < product.getDiscountSold()) {
+            throw new IllegalArgumentException("Giới hạn flash sale không được thấp hơn số lượng đã bán.");
+        }
+    }
+
+    @Transactional
+    public Product addProduct(ProductRequestDTO request, MultipartFile[] multipartFiles) throws IOException {
+        Product product = new Product();
+        product.setName(request.getName());
+        product.setDescription(request.getDescription());
+        product.setPrice(request.getPrice());
+        product.setMrpPrice(request.getMrpPrice());
+        product.setProductCategory(request.getProductCategory());
+        product.setDiscountPrice(request.getDiscountPrice());
+        product.setDiscountLimit(request.getDiscountLimit());
+        product.setStock(request.getStock());
+        product.setCreateDate(new Date());
+        product.setDiscountSold(0);
+        product.setActive("Active");
+
+        validateProductPrices(product);
+        Product savedProduct = productRepository.saveAndFlush(product);
+
+        String uploadDir = "product-images/";
+        boolean hasUpload = false;
+        String firstFileName = null;
+
+        if (multipartFiles != null) {
+            for (MultipartFile file : multipartFiles) {
+                if (file != null && !file.isEmpty()) {
+                    String safeFileName = fileStorageService.storeFile(file, uploadDir);
+                    if (safeFileName != null) {
+                        hasUpload = true;
+                        ProductImage pi = new ProductImage();
+                        pi.setImageName(safeFileName);
+                        pi.setProduct(savedProduct);
+                        productImageRepository.save(pi);
+
+                        if (firstFileName == null) {
+                            firstFileName = safeFileName;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (hasUpload) {
+            savedProduct.setImage(firstFileName);
+        } else if (savedProduct.getImage() == null || savedProduct.getImage().trim().isEmpty()) {
+            savedProduct.setImage("https://via.placeholder.com/300");
+        }
+
+        return productRepository.save(savedProduct);
+    }
+
+    @Transactional
+    public Product updateProduct(ProductRequestDTO request, MultipartFile multipartFile) throws IOException {
+        Product oldProduct = productRepository.findById(request.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm ID: " + request.getId()));
+
+        oldProduct.setName(request.getName());
+        oldProduct.setDescription(request.getDescription());
+        oldProduct.setPrice(request.getPrice());
+        oldProduct.setMrpPrice(request.getMrpPrice());
+        oldProduct.setProductCategory(request.getProductCategory());
+        oldProduct.setDiscountPrice(request.getDiscountPrice());
+        oldProduct.setDiscountLimit(request.getDiscountLimit());
+        oldProduct.setStock(request.getStock());
+
+        validateProductPrices(oldProduct);
+
+        if (multipartFile != null && !multipartFile.isEmpty()) {
+            String safeFileName = fileStorageService.storeFile(multipartFile, "product-images/");
+            if (safeFileName != null) {
+                if (oldProduct.getImage() != null && !oldProduct.getImage().startsWith("http")) {
+                    fileStorageService.deleteFile("product-images/" + oldProduct.getImage());
+                }
+                oldProduct.setImage(safeFileName);
+            }
+        }
+        return productRepository.save(oldProduct);
+    }
+
+    @Transactional
+    public void deleteProduct(Long id) {
+        reviewRepository.deleteByProductId(id);
+        productRepository.deleteById(id);
+    }
+
+    @Transactional(readOnly = true)
     public List<Product> findAll() {
         return productRepository.findAll();
     }
 
+    @Transactional(readOnly = true)
+    public Page<Product> searchAdminProducts(String keyword, String category, int page, int size) {
+        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
+        String normalizedCategory = category == null || category.isBlank() ? null : category.trim();
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(1, Math.min(size, 100));
+        return productRepository.searchAdminProducts(normalizedKeyword, normalizedCategory,
+                PageRequest.of(safePage, safeSize, org.springframework.data.domain.Sort.by("id").descending()));
+    }
+
+    public long countProducts() {
+        return productRepository.count();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Product> getLowStockProducts(int threshold) {
+        return productRepository.findLowStockProducts(threshold, PageRequest.of(0, 10));
+    }
+
+    public List<Product> searchByName(String keyword) {
+        return productRepository.findByNameContainingIgnoreCase(keyword);
+    }
+
+    public List<Product> findByCategory(String category) {
+        return productRepository.findByProductCategory(category);
+    }
+
+    @Transactional(readOnly = true)
     public Product findById(Long id) {
-        // Tìm sản phẩm theo ID, nếu không thấy thì trả về null tránh lỗi
         return productRepository.findById(id).orElse(null);
     }
-    // ==========================================
-    
+
+    @Transactional(readOnly = true)
     public List<Product> getProductsByCategory(String categoryName) {
         return productRepository.findByProductCategory(categoryName);
     }
-    
+
+    @Transactional(readOnly = true)
     public String searchProductForAi(String keyword) {
         List<Product> products = productRepository.findByNameContainingIgnoreCase(keyword);
-        
         if (products.isEmpty()) {
-            return "Hiện tại cửa hàng không có sản phẩm nào tên là: " + keyword;
+            return "Hiện tại cửa hàng không có sản phẩm nào khớp với từ khóa: " + keyword;
         }
 
-        // Biến danh sách Object thành chuỗi văn bản gọn gàng
         StringBuilder sb = new StringBuilder("Dưới đây là các sản phẩm tìm thấy:\n");
-        
-        boolean isLaptopSearch = false; // Biến cờ (flag) để theo dõi xem có laptop không
+        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+        boolean isLaptopSearch = false;
 
         for (Product p : products) {
-            sb.append(String.format("- Tên: %s | Giá: %s | Kho: %d | Mô tả: %s\n", 
-                p.getName(), p.getPrice(), p.getStock(), p.getDescription()));
-            
-            // Nếu phát hiện sản phẩm này thuộc danh mục Laptop -> Bật cờ lên true
-            if (p.getProductCategory() != null && 
-                p.getProductCategory().toLowerCase().contains("laptop")) {
+            String priceText = p.getPrice() != null ? currencyFormat.format(p.getPrice()) : "Liên hệ";
+            sb.append(String.format("- ID: %d | Tên: %s | Giá: %s | Tồn kho: %d | Mô tả: %s\n",
+                    p.getId(), p.getName(), priceText, p.getStock() != null ? p.getStock() : 0, p.getDescription()));
+
+            if (p.getProductCategory() != null && p.getProductCategory().toLowerCase().contains("laptop")) {
                 isLaptopSearch = true;
             }
         }
 
-        // ============================================================
-        // TÍCH HỢP AI GỢI Ý PHỤ KIỆN TỰ ĐỘNG
-        // ============================================================
         if (isLaptopSearch) {
-            // Lấy danh sách 4 phụ kiện từ hàm ta đã viết sẵn lúc nãy
             List<Product> accessories = getRecommendedAccessories();
-            
             if (!accessories.isEmpty()) {
-                // Nhét thêm "mật chú" bắt buộc con AI phải tư vấn thêm
-                sb.append("\n[HƯỚNG DẪN DÀNH RIÊNG CHO AI]: Nhận thấy khách hàng đang tìm hiểu về Laptop. Sau khi tư vấn về Laptop xong, bạn BẮT BUỘC phải dùng lời lẽ tự nhiên để gợi ý khách hàng mua kèm các phụ kiện dưới đây:\n");
-                
+                sb.append("\n[GỢI Ý PHỤ KIỆN KÈM THEO]:\n");
                 for (Product acc : accessories) {
-                    sb.append(String.format(" + Phụ kiện: %s | Giá: %s VNĐ\n", 
-                        acc.getName(), acc.getPrice()));
+                    String accPrice = acc.getPrice() != null ? currencyFormat.format(acc.getPrice()) : "";
+                    sb.append(String.format(" + Phụ kiện: %s | Giá: %s\n", acc.getName(), accPrice));
                 }
             }
         }
 
         return sb.toString();
     }
-//    public String searchProductForAi(String keyword) {
-//        List<Product> products = productRepository.findByNameContainingIgnoreCase(keyword);
-//        
-//        if (products.isEmpty()) {
-//            return "Hiện tại cửa hàng không có sản phẩm nào tên là: " + keyword;
-//        }
-//
-//        // Biến danh sách Object thành chuỗi văn bản gọn gàng
-//        StringBuilder sb = new StringBuilder("Dưới đây là các sản phẩm tìm thấy:\n");
-//        for (Product p : products) {
-//            sb.append(String.format("- Tên: %s | Giá: %s | Kho: %d | Mô tả: %s\n", 
-//                p.getName(), p.getPrice(), p.getStock(), p.getDescription()));
-//        }
-//        return sb.toString();
-//    }
-    @Tool("Sử dụng công cụ này BẤT CỨ LÚC NÀO bạn muốn lấy danh sách các phụ kiện (chuột, bàn phím, tai nghe) để chào mời, gợi ý, hoặc chèo kéo khách hàng mua thêm, ngay cả khi họ không hỏi trực tiếp.")
-    public String getHotAccessoriesForSale() {
-        
-        List<Product> accessories = getRecommendedAccessories();
-        
-        if (accessories.isEmpty()) {
-            return "Tạm thời hết phụ kiện để gợi ý.";
-        }
 
-        StringBuilder sb = new StringBuilder("Dưới đây là danh sách phụ kiện hot để bạn chào mời khách:\n");
-        for (Product p : accessories) {
-            sb.append(String.format("- %s | Giá: %s VNĐ\n", p.getName(), p.getPrice()));
-        }
-        sb.append("[HƯỚNG DẪN DÀNH RIÊNG CHO AI]: Hãy dùng lời lẽ khéo léo, tự nhiên để lồng ghép các sản phẩm này vào cuộc trò chuyện với khách hàng nhé.");
-        
-        return sb.toString();
-    }
+    @Transactional(readOnly = true)
     public List<Product> getRecommendedAccessories() {
-        // Sử dụng TÊN danh mục thay vì ID
-        // LƯU Ý: Tên này phải giống hệt với tên danh mục phụ kiện lưu trong Database của bạn
-        String categoryName = "Accessories"; 
-        
-        Pageable limitFour = PageRequest.of(0, 4); 
-        
-        return productRepository.findAccessoriesForLaptop(
-                categoryName, "chuột", "phím", "tai nghe", limitFour);
+        String categoryName = "Accessories";
+        Pageable limitFour = PageRequest.of(0, 4);
+        return productRepository.findAccessoriesForLaptop(categoryName, "chuột", "phím", "tai nghe", limitFour);
     }
+
+    @Transactional(readOnly = true)
     public List<Product> getDynamicAccessories(Product product) {
         if (product == null || product.getProductCategory() == null || product.getName() == null) {
             return new ArrayList<>();
         }
 
-        // Đổi hết sang chữ thường để dễ so sánh
         String categoryName = product.getProductCategory().toLowerCase();
         String productName = product.getName().toLowerCase();
-
         List<String> tempKeywords = new ArrayList<>();
 
-        // 1. Nhóm Laptop / PC / Macbook
         if (categoryName.contains("laptop") || categoryName.contains("pc") || categoryName.contains("máy tính") || categoryName.contains("macbook")) {
             tempKeywords = List.of("chuột", "bàn phím", "tai nghe", "balo", "đế tản nhiệt");
-        }
-        // 2. Nhóm Điện thoại / Tablet / iPad (ĐÃ THÊM CHỮ "MOBILE" VÀ "TABLET")
-        else if (categoryName.contains("điện") || categoryName.contains("phone") || categoryName.contains("dien thoai") || categoryName.contains("smart") || categoryName.contains("mobile") || categoryName.contains("apple") || categoryName.contains("ipad") || categoryName.contains("tablet")) {
+        } else if (categoryName.contains("điện") || categoryName.contains("phone") || categoryName.contains("dien thoai") || categoryName.contains("smart") || categoryName.contains("mobile") || categoryName.contains("apple") || categoryName.contains("ipad") || categoryName.contains("tablet")) {
             tempKeywords = List.of("ốp", "sạc", "dự phòng", "tai nghe", "cáp");
-        }
-        // 3. Nhóm Máy ảnh
-        else if (categoryName.contains("camera") || categoryName.contains("máy ảnh") || productName.contains("gopro")) {
+        } else if (categoryName.contains("camera") || categoryName.contains("máy ảnh") || productName.contains("gopro")) {
             tempKeywords = List.of("light", "thẻ nhớ", "tripod", "pin");
-        }
-        // 4. Nhóm Phụ kiện
-        else if (categoryName.contains("accessories") || categoryName.contains("phụ kiện") || categoryName.contains("phu kien")) {
-            if (productName.contains("sạc") || productName.contains("adapter")) {
-                tempKeywords = List.of("cáp", "cable", "dây"); 
-            } else if (productName.contains("cáp") || productName.contains("cable")) {
-                tempKeywords = List.of("sạc", "adapter", "củ"); 
-            } else {
-                tempKeywords = List.of("balo", "túi", "giá đỡ"); 
-            }
+        } else {
+            tempKeywords = List.of("chuột", "sạc", "tai nghe");
         }
 
         final List<String> finalKeywords = tempKeywords;
-        List<Product> allProducts = productRepository.findAll();
+        List<Product> results = new ArrayList<>();
+        int page = 0;
+        int size = 50;
+        while (results.size() < 4) {
+            Page<Product> productPage = productRepository.findAll(PageRequest.of(page, size));
+            if (!productPage.hasContent()) break;
 
-        return allProducts.stream()
-                .filter(p -> p.getId() != null && !p.getId().equals(product.getId()))
-                .filter(p -> p.getName() != null)
-                .filter(p -> {
+            for (Product p : productPage.getContent()) {
+                if (p.getId() != null && !p.getId().equals(product.getId()) && p.getName() != null) {
                     String currentProductName = p.getName().toLowerCase();
-                    String currentCategoryName = p.getProductCategory() != null ? p.getProductCategory().toLowerCase() : "";
-
-                    // Nếu có từ khóa -> Phải ưu tiên lọc theo đúng từ khóa (Sạc, cáp, tai nghe...)
-                    if (!finalKeywords.isEmpty()) {
-                        return finalKeywords.stream().anyMatch(kw -> currentProductName.contains(kw));
+                    if (finalKeywords.stream().anyMatch(currentProductName::contains)) {
+                        results.add(p);
+                        if (results.size() == 4) break;
                     }
-                    
-                    // Chỉ xài phao cứu sinh (bốc bừa) khi thực sự không biết sản phẩm thuộc loại gì
-                    return currentCategoryName.contains("accessories") || currentCategoryName.contains("phụ kiện") || currentCategoryName.contains("phu kien");
-                })
-                .limit(4)
-                .collect(Collectors.toList());
-    }
-  /*  public List<Product> getDynamicAccessories(Product mainProduct) {
-        if (mainProduct == null) return List.of();
-
-        // Lấy tên sản phẩm và tên danh mục chuyển về chữ thường để dễ soi
-        String nameLower = mainProduct.getName().toLowerCase();
-        String catLower = mainProduct.getProductCategory() != null ? mainProduct.getProductCategory().toLowerCase() : "";
-
-        // Tạo sẵn 3 biến từ khóa mặc định
-        String kw1 = "phụ kiện"; 
-        String kw2 = "sạc"; 
-        String kw3 = "cáp";
-
-        // BẮT ĐẦU KIỂM TRA ĐỂ ĐỔI TỪ KHÓA:
-        if (nameLower.contains("laptop") || nameLower.contains("macbook") || catLower.contains("laptop")) {
-            // Nếu là Laptop
-            kw1 = "chuột"; 
-            kw2 = "tai nghe"; 
-            kw3 = "balo";
-        } 
-        else if (nameLower.contains("điện thoại") || nameLower.contains("iphone") || nameLower.contains("samsung") || catLower.contains("phone")) {
-            // Nếu là Điện thoại
-            kw1 = "ốp lưng"; 
-            kw2 = "sạc"; 
-            kw3 = "tai nghe";
+                }
+            }
+            page++;
         }
-
-        // Tên danh mục phụ kiện trong DB của bồ đang là "Accessories"
-        String categoryName = "Accessories"; 
-        
-        // Gọi thẳng vào Repository, lấy đúng 4 sản phẩm
-        return productRepository.findAccessoriesForLaptop(
-                categoryName, kw1, kw2, kw3, PageRequest.of(0, 4)
-        );
-    }*/
+        return results;
+    }
 }

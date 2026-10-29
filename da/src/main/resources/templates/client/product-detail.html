@@ -7,9 +7,70 @@
 </head>
 <body class="bg-light">
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="/">TECHGEAR</a>
+        <a class="navbar-brand fw-bold" href="/"><i class="fas fa-bolt text-danger me-2"></i>DuHV6</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <form class="d-flex mx-auto" action="/search" method="get">
+                <input class="form-control me-2" type="search" name="keyword" 
+                       placeholder="Tìm sản phẩm..." required>
+                <button class="btn btn-outline-light" type="submit">Tìm</button>
+            </form>
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item"><a class="nav-link" href="/">Trang chủ</a></li>
+                <li class="nav-item">
+                    <a class="nav-link btn btn-outline-warning text-white ms-2 position-relative px-3" href="/cart">
+                        <i class="fas fa-shopping-cart"></i> Giỏ hàng
+                    </a>
+                </li>
+                <li class="nav-item me-2" th:if="${session.admin != null}">
+                    <a class="btn btn-warning btn-sm text-dark fw-bold ms-2" href="/admin/dashboard">
+                        <i class="fas fa-shield-alt me-1"></i> Quay lại Admin
+                    </a>
+                </li>
+                <li class="nav-item" th:if="${session.admin != null}">
+                    <form action="/logout" method="post" class="d-inline">
+                        <button type="submit" class="nav-link text-danger border-0 bg-transparent text-start w-100 ms-2">
+                            <i class="fas fa-sign-out-alt me-1"></i> Đăng xuất
+                        </button>
+                    </form>
+                </li>
+                <li class="nav-item" th:if="${session.user == null and session.admin == null}">
+                    <a class="nav-link" href="/login">Đăng nhập</a>
+                </li>
+                <li class="nav-item" th:if="${session.user == null and session.admin == null}">
+                    <a class="nav-link" href="/register">Đăng ký</a>
+                </li>
+                <th:block th:if="${session.user != null}">
+                    <li class="nav-item me-2">
+                        <a class="nav-link position-relative" href="/my-orders"> 
+                            <i class="fas fa-bell"></i>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-1"></i> Xin chào, <span th:text="${session.user.name}">User</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/profile">
+                                <i class="fas fa-id-card me-2"></i>Hồ sơ cá nhân
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form action="/logout" method="post" class="d-inline">
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Đăng xuất
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </th:block>
+            </ul>
+        </div>
     </div>
 </nav>
 
@@ -97,6 +158,19 @@
         <div class="col-md-7">
             <h2 class="fw-bold" th:text="${product.name}">iPhone 16 Pro Max</h2>
             
+            <!-- Đánh giá sao trung bình (ERP-style Rating Summary) -->
+            <div class="d-flex align-items-center mb-2">
+                <span class="text-warning me-2">
+                    <i class="fas fa-star"></i>
+                    <span class="fw-bold text-dark fs-6" th:text="${avgRating}">5.0</span>/5
+                </span>
+                <span class="text-muted small me-3">(<span th:text="${reviewCount}">0</span> lượt đánh giá)</span>
+                <span class="badge bg-light text-secondary border px-2 py-1" th:text="${product.productCategory}">Laptop</span>
+                <span th:if="${hasPurchased}" class="badge bg-success-subtle text-success border border-success-subtle rounded-pill ms-2">
+                    <i class="fas fa-check-circle me-1"></i>Đã mua sản phẩm này
+                </span>
+            </div>
+            
             <div class="mt-3 mb-3">
                 <th:block th:if="${product.discountPrice != null and product.discountPrice > 0 and product.discountLimit > product.discountSold}">
                     <span class="h3 text-danger fw-bold" th:text="${#numbers.formatDecimal(product.discountPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">15.000.000 đ</span>
@@ -123,7 +197,15 @@
                 </th:block>
             </div>
 
-            <div class="border rounded p-3 mt-3 bg-light">
+            <!-- Quick Guarantee Badges -->
+            <div class="d-flex flex-wrap gap-2 mt-3 mb-2">
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1"><i class="fas fa-shield-alt me-1"></i>Chính hãng 100%</span>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1"><i class="fas fa-shipping-fast me-1"></i>Giao toàn quốc</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="fas fa-sync-alt me-1"></i>1 đổi 1 30 ngày</span>
+                <span class="badge bg-secondary-subtle text-secondary border px-2 py-1"><i class="fas fa-tools me-1"></i>Bảo hành 12T</span>
+            </div>
+
+            <div class="border rounded p-3 mt-2 bg-light">
                 <h6 class="fw-bold"><i class="fas fa-gift text-danger"></i> Khuyến mãi nổi bật</h6>
                 <ul class="mb-0 small">
                     <li>Giảm thêm 500k khi thanh toán qua VNPay</li>
@@ -135,13 +217,19 @@
             <div th:if="${product.stock > 0}">
                 <p class="text-success mt-3"><i class="fas fa-check-circle"></i> Còn hàng (Số lượng: <span th:text="${product.stock}"></span>)</p>
                 <div class="d-flex gap-2 mt-4">
-                    <a th:href="@{/cart/add(productId=${product.id})}" class="btn btn-danger flex-grow-1 py-3">
-                        <h5 class="mb-0">MUA NGAY</h5>
-                    </a>
-                    <a th:href="@{/cart/add(productId=${product.id})}" class="btn btn-outline-primary py-3 px-4 d-flex flex-column align-items-center justify-content-center">
-                        <i class="fas fa-cart-plus fa-lg"></i>
-                        <small>Thêm vào giỏ</small>
-                    </a>
+                    <form th:action="@{/cart/add}" method="post" class="flex-grow-1">
+                        <input type="hidden" name="productId" th:value="${product.id}">
+                        <button type="submit" class="btn btn-danger w-100 h-100 py-3">
+                            <h5 class="mb-0">MUA NGAY</h5>
+                        </button>
+                    </form>
+                    <form th:action="@{/cart/add}" method="post">
+                        <input type="hidden" name="productId" th:value="${product.id}">
+                        <button type="submit" class="btn btn-outline-primary h-100 py-3 px-4 d-flex flex-column align-items-center justify-content-center">
+                            <i class="fas fa-cart-plus fa-lg"></i>
+                            <small>Thêm vào giỏ</small>
+                        </button>
+                    </form>
                 </div>
             </div>
 
@@ -152,6 +240,65 @@
         </div>
     </div>
 
+    <!-- Đặc điểm nổi bật & Thông số chi tiết ngay dưới ảnh sản phẩm -->
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="bg-white p-4 rounded shadow-sm border h-100">
+                <h4 class="fw-bold mb-3" style="color: #d70018;"><i class="fas fa-info-circle me-2"></i>Đặc điểm nổi bật & Thông số chi tiết</h4>
+                
+                <div th:if="${product.description != null and !#strings.isEmpty(product.description)}" 
+                     class="description-content mb-4" id="descriptionBox">
+                    <div id="rawDescription" style="white-space: pre-line; line-height: 1.8; font-size: 15px; color: #333;" th:text="${product.description}"></div>
+                </div>
+
+                <div th:unless="${product.description != null and !#strings.isEmpty(product.description)}" 
+                     class="alert alert-light border rounded-3 p-4 my-3 text-center">
+                    <i class="fas fa-file-alt text-muted fa-3x mb-3"></i>
+                    <h6 class="fw-bold text-dark">Thông tin chi tiết đang được cập nhật</h6>
+                    <p class="text-muted small mb-0">Sản phẩm này đang được TechGear hoàn thiện bảng thông số kỹ thuật và bài viết đánh giá chi tiết. Quý khách vui lòng liên hệ hotline <strong class="text-danger">1900 8888</strong> để được chuyên viên tư vấn chi tiết nhất.</p>
+                </div>
+
+                <div class="text-center mt-3" th:if="${product.image != null}">
+                    <img th:src="${product.image.startsWith('http') ? product.image : '/product-images/' + product.image}" 
+                         class="rounded shadow-sm" style="max-width: 100%; max-height: 400px; object-fit: contain;">
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="bg-white p-4 rounded shadow-sm border mb-4">
+                <h5 class="fw-bold text-dark mb-3"><i class="fas fa-shield-alt text-success me-2"></i>Chính sách TechGear</h5>
+                <ul class="list-unstyled small mb-0 d-flex flex-column gap-3">
+                    <li class="d-flex align-items-center">
+                        <i class="fas fa-check-circle text-success me-2 fa-lg"></i>
+                        <span>Cam kết 100% hàng chính hãng</span>
+                    </li>
+                    <li class="d-flex align-items-center">
+                        <i class="fas fa-shipping-fast text-primary me-2 fa-lg"></i>
+                        <span>Giao hàng siêu tốc toàn quốc</span>
+                    </li>
+                    <li class="d-flex align-items-center">
+                        <i class="fas fa-sync-alt text-warning me-2 fa-lg"></i>
+                        <span>Bảo hành 1 đổi 1 trong 30 ngày nếu lỗi</span>
+                    </li>
+                    <li class="d-flex align-items-center">
+                        <i class="fas fa-tools text-secondary me-2 fa-lg"></i>
+                        <span>Bảo hành phần cứng 12 tháng</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="bg-white p-4 rounded shadow-sm border">
+                <h5 class="fw-bold text-dark mb-2"><i class="fas fa-headset text-danger me-2"></i>Hỗ trợ tư vấn</h5>
+                <p class="small text-muted mb-3">Tư vấn chọn cấu hình và phụ kiện tương thích 24/7</p>
+                <div class="p-3 bg-light rounded text-center">
+                    <div class="text-danger fw-bold fs-5">1900 8888</div>
+                    <small class="text-muted">Hotline miễn phí (8:00 - 22:00)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phụ kiện thường mua kèm đặt ngay sau phần mô tả -->
     <div class="row mt-4" th:if="${recommendedProducts != null and !recommendedProducts.empty}">
         <div class="col-12">
             <div class="bg-white p-4 rounded shadow-sm border">
@@ -181,27 +328,21 @@
             </div>
         </div>
     </div>
-    <div class="row mt-4">
-        <div class="col-md-8">
-            <div class="bg-white p-4 rounded shadow-sm border">
-                <h4 class="fw-bold mb-3" style="color: #d70018;">Đặc điểm nổi bật</h4>
-                
-                <div class="description-content" style="line-height: 1.6; font-size: 15px; color: #444;">
-                    <p style="white-space: pre-line;" th:text="${product.description}"></p>
-                </div>
-
-                <div class="text-center mt-4">
-                    <img th:src="${product.image.startsWith('http') ? product.image : '/product-images/' + product.image}" 
-                         class="rounded shadow-sm" style="max-width: 100%; height: auto;">
-                </div>
-            </div>
-        </div>
-    </div>
     
     <div class="row mt-4 mb-5">
         <div class="col-12">
             <div class="bg-white p-4 rounded shadow-sm">
                 <h4 class="fw-bold mb-4 border-bottom pb-2">Đánh giá sản phẩm</h4>
+
+                <!-- Flash feedback messages -->
+                <div th:if="${reviewSuccess}" class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+                    <i class="fas fa-check-circle me-2"></i><span th:text="${reviewSuccess}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div th:if="${reviewError}" class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i><span th:text="${reviewError}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
 
                 <div class="review-list mb-4">
                     <p th:if="${reviews == null or reviews.empty}" class="text-muted text-center py-3">
@@ -216,7 +357,12 @@
                             </div>
                         </div>
                         <div>
-                            <h6 class="fw-bold mb-1" th:text="${review.customer.name}">Tên User</h6>
+                            <div class="d-flex align-items-center gap-2">
+                                <h6 class="fw-bold mb-1" th:text="${review.customer.name}">Tên User</h6>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style="font-size: 0.72rem;">
+                                    <i class="fas fa-check-circle me-1"></i>Đã mua hàng
+                                </span>
+                            </div>
                             
                             <div class="text-warning small mb-1">
                                 <span th:each="i : ${#numbers.sequence(1, 5)}">
@@ -231,9 +377,9 @@
                     </div>
                 </div>
 
-                <div th:if="${session.user != null}" class="bg-light p-3 rounded">
+                <div th:if="${isLoggedIn or session.user != null}" class="bg-light p-3 rounded">
                     <h5 class="fw-bold mb-3">Viết đánh giá của bạn</h5>
-                    <form action="/save-review" method="post">
+                    <form th:action="@{/save-review}" method="post">
                         <input type="hidden" name="productId" th:value="${product.id}">
                         
                         <div class="mb-3">
@@ -261,7 +407,7 @@
                     </form>
                 </div>
 
-                <div th:if="${session.user == null}" class="alert alert-warning text-center">
+                <div th:if="${!isLoggedIn and session.user == null}" class="alert alert-warning text-center">
                     Vui lòng <a href="/login" class="fw-bold">đăng nhập</a> để viết đánh giá.
                 </div>
 
@@ -270,7 +416,7 @@
     </div>
 </div> 
 
-<script>
+<script th:inline="none">
     function changeImage(element) {
         // Thay đổi đường dẫn ảnh chính
         var mainImg = document.getElementById('mainImage');
@@ -284,11 +430,85 @@
         // Thêm viền đỏ cho ảnh vừa click (phải lấy thẻ div cha)
         element.parentElement.classList.add('active-thumb');
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var rawDescEl = document.getElementById('rawDescription');
+        if (!rawDescEl) return;
+        
+        var text = rawDescEl.textContent || rawDescEl.innerText || '';
+        if (!text.trim()) return;
+
+        var lines = text.split('\n');
+        var html = [];
+        var inList = false;
+
+        function escapeHtml(str) {
+            var div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        lines.forEach(function(line) {
+            var trimmed = line.trim();
+            if (!trimmed) {
+                if (inList) {
+                    html.push('</ul>');
+                    inList = false;
+                }
+                html.push('<div class="my-2"></div>');
+                return;
+            }
+
+            // Kiểm tra tiêu đề danh mục (bắt đầu bằng emoji hoặc chữ hoa dài)
+            var isHeader = /^[🔥🖥️❄️⚡🚀✨🔋🎧⌨️🎯🎨🌈🪶📡🔇🎵🎙️💡⚙️🛡️⭐]/.test(trimmed) || 
+                           (/^[A-Z0-9\sÀ-Ỹ\-\:\/]{5,}$/.test(trimmed) && trimmed.length < 80);
+
+            if (isHeader) {
+                if (inList) {
+                    html.push('</ul>');
+                    inList = false;
+                }
+                html.push('<h5 class="fw-bold mt-4 mb-2 pb-1 border-bottom d-flex align-items-center" style="color: #d70018;">' + escapeHtml(trimmed) + '</h5>');
+                return;
+            }
+
+            // Kiểm tra gạch đầu dòng thông số (•, -, *)
+            if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
+                if (!inList) {
+                    html.push('<ul class="list-unstyled mb-2 d-flex flex-column gap-2">');
+                    inList = true;
+                }
+                var content = trimmed.substring(1).trim();
+                var colonIdx = content.indexOf(':');
+                var formattedContent = escapeHtml(content);
+                if (colonIdx > 0 && colonIdx < 30) {
+                    var label = escapeHtml(content.substring(0, colonIdx + 1));
+                    var val = escapeHtml(content.substring(colonIdx + 1));
+                    formattedContent = '<strong class="text-dark">' + label + '</strong>' + val;
+                }
+                html.push('<li class="d-flex align-items-start"><i class="fas fa-check-circle text-danger me-2 mt-1 flex-shrink-0" style="font-size: 0.85rem;"></i><span>' + formattedContent + '</span></li>');
+                return;
+            }
+
+            if (inList) {
+                html.push('</ul>');
+                inList = false;
+            }
+
+            // Đoạn văn thông thường
+            html.push('<p class="text-secondary mb-2" style="font-size: 0.98rem; text-align: justify;">' + escapeHtml(trimmed) + '</p>');
+        });
+
+        if (inList) {
+            html.push('</ul>');
+        }
+
+        rawDescEl.innerHTML = html.join('');
+        rawDescEl.style.whiteSpace = 'normal';
+    });
 </script>
 
-<footer class="bg-dark text-white text-center py-4 mt-5">
-    <p>&copy; 2025 DuHV6. All rights reserved.</p>
-</footer>
+<div th:replace="~{layout/footer :: footer_fragment}"></div>
 
 </body>
 </html>

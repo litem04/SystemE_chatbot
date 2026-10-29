@@ -12,7 +12,7 @@
         <div class="col-md-7">
             <div class="card p-4">
                 <h4>Thông tin giao hàng</h4>
-                <form action="/place-order" method="post">
+                <form th:action="@{/place-order}" method="post">
                     <div class="mb-3">
                         <label>Người nhận:</label>
                         <input type="text" class="form-control" th:value="${user.name}" readonly>
@@ -66,8 +66,9 @@
 		            </li>
 		        </ul>
 		    </div>
-		</div>
     </div>
 </div>
+
+<div th:replace="~{layout/footer :: footer_fragment}"></div>
 </body>
 </html>

@@ -13,7 +13,7 @@
         <span th:text="${session['success-message']}"></span>
         <th:block th:text="${#session.removeAttribute('success-message')}"></th:block>
     </div>
-	<form action="/do-login" method="post"> <div th:if="${param.error}" class="alert alert-danger">
+	<form th:action="@{/do-login}" method="post"> <div th:if="${param.error}" class="alert alert-danger">
 	        Sai email hoặc mật khẩu!
 	    </div>
 	    <div th:if="${param.logout}" class="alert alert-success">
@@ -32,6 +32,7 @@
 	    
 	    <button type="submit" class="btn btn-primary w-100">Đăng nhập</button>
 		<p class="mt-2 text-center"><a href="/register">Chưa có tài khoản? Đăng ký</a></p>
+		<p class="text-center"><a href="/" class="btn btn-outline-secondary btn-sm">🏠 Về trang chủ</a></p>
 
 </div>
 </body>

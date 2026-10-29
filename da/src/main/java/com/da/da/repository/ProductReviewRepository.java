@@ -11,8 +11,15 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.List;
 
 public interface ProductReviewRepository extends JpaRepository<ProductReview, Integer> {
-    // Lấy tất cả review của 1 sản phẩm
     List<ProductReview> findByProductId(Long productId);
+
+    List<ProductReview> findByProductIdOrderByDateDesc(Long productId);
+
+    @Query("SELECT AVG(CAST(r.rating AS double)) FROM ProductReview r WHERE r.product.id = :productId")
+    Double getAverageRating(@org.springframework.data.repository.query.Param("productId") Long productId);
+
+    Long countByProductId(Long productId);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM ProductReview p WHERE p.product.id = :productId")

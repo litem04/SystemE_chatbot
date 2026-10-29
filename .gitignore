@@ -1,0 +1,38 @@
+# Compiled class files & build directories
+**/target/
+target/
+*.class
+
+# Log files
+*.log
+logs/
+
+# IDE & Editor files
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+.springBeans
+.sts4-cache
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary & Scratch files
+temp_*
+*.tmp
+[Help*
+
+# Local environment & secrets
+.env
+.env.local
+
+# External Toolkits & Reference Repos (not part of the project source)
+ECC/

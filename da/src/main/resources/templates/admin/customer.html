@@ -9,18 +9,6 @@
         /* CSS tùy chỉnh nhỏ để giao diện mượt hơn */
         body {
             background-color: #f8f9fa;
-            overflow-x: hidden; /* Chặn thanh cuộn ngang thừa */
-        }
-        .main-content {
-            margin-left: 250px; /* Chừa chỗ cho Sidebar bên trái */
-            padding: 20px;
-            transition: all 0.3s;
-        }
-        /* Nếu màn hình nhỏ (Mobile) thì bỏ margin để full màn hình */
-        @media (max-width: 768px) {
-            .main-content {
-                margin-left: 0;
-            }
         }
         .avatar-circle {
             width: 45px;
@@ -35,20 +23,15 @@
             justify-content: center;
         }
     </style>
-</head>
-<body>
+<body class="bg-light">
+    <div th:replace="~{admin/fragments/admin-header :: header('customers')}"></div>
 
-    <div class="main-content">
-        
+    <div class="container-fluid px-4 mb-5">
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-            
             <div class="d-flex align-items-center">
-                <a th:href="@{/admin/dashboard}" class="btn btn-outline-secondary me-3" title="Quay lại Dashboard">
-                    <i class="fas fa-arrow-left"></i>
-                </a>
                 <div>
-                    <h2 class="fw-bold mb-0 text-dark">Khách hàng</h2>
-                    <p class="text-muted mb-0 small">Quản lý thông tin người dùng</p>
+                    <h3 class="fw-bold mb-0 text-dark"><i class="fas fa-users text-primary me-2"></i>Quản lý Khách hàng</h3>
+                    <p class="text-muted mb-0 small">Theo dõi danh sách khách hàng và lịch sử tài khoản</p>
                 </div>
             </div>
 
@@ -79,7 +62,8 @@
                                 <th class="py-3 ps-4">Khách hàng</th>
                                 <th class="py-3">Liên hệ</th>
                                 <th class="py-3">Địa chỉ</th>
-                                <th class="py-3 text-center" style="width: 150px;">Hành động</th>
+                                <th class="py-3 text-center">Trạng thái</th>
+                                <th class="py-3 text-center" style="width: 200px;">Hành động</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -91,7 +75,10 @@
                                         </div>
                                         <div>
                                             <h6 class="mb-0 fw-bold text-dark" th:text="${customer.name}">Tên Khách</h6>
-                                            <small class="text-muted">ID: #<span th:text="${customer.id}">1</span></small>
+                                            <small class="text-muted">
+                                                <span class="badge bg-light text-secondary border me-1" th:if="${customer.gender}" th:text="${customer.gender}">Nam</span>
+                                                ID: #<span th:text="${customer.id}">1</span>
+                                            </small>
                                         </div>
                                     </div>
                                 </td>
@@ -113,14 +100,33 @@
                                         Địa chỉ
                                     </span>
                                 </td>
+
+                                <td class="text-center">
+                                    <span th:if="${customer.isLocked}" class="badge bg-danger rounded-pill px-2 py-1">
+                                        <i class="fas fa-lock me-1"></i>Đã khóa
+                                    </span>
+                                    <span th:unless="${customer.isLocked}" class="badge bg-success rounded-pill px-2 py-1">
+                                        <i class="fas fa-check-circle me-1"></i>Hoạt động
+                                    </span>
+                                </td>
                                 
                                 <td class="text-center">
-                                    <a th:href="@{/admin/customers/delete/{id}(id=${customer.id})}" 
-                                       class="btn btn-sm btn-outline-danger rounded-pill px-3"
-                                       title="Xóa khách hàng"
-                                       onclick="return confirm('CẢNH BÁO: Xóa khách hàng này sẽ xóa lịch sử mua hàng?');">
-                                        <i class="fas fa-trash-alt me-1"></i> Xóa
-                                    </a>
+                                    <!-- Nút Khóa / Mở khóa tài khoản (ERP-style) -->
+                                    <form th:action="@{/admin/customers/toggle-lock/{id}(id=${customer.id})}" method="post" class="d-inline me-1">
+                                        <button th:if="${customer.isLocked}" type="submit" class="btn btn-sm btn-outline-success rounded-pill px-2" title="Mở khóa tài khoản">
+                                            <i class="fas fa-unlock me-1"></i>Mở
+                                        </button>
+                                        <button th:unless="${customer.isLocked}" type="submit" class="btn btn-sm btn-outline-warning rounded-pill px-2" title="Khóa tài khoản" onclick="return confirm('Bạn có chắc muốn KHÓA tài khoản này? Khách hàng sẽ bị đăng xuất và không thể đăng nhập lại.');">
+                                            <i class="fas fa-lock me-1"></i>Khóa
+                                        </button>
+                                    </form>
+
+                                    <!-- Nút Xóa khách hàng -->
+                                    <form th:action="@{/admin/customers/delete/{id}(id=${customer.id})}" method="post" class="d-inline" onsubmit="return confirm('CẢNH BÁO: Xóa vĩnh viễn khách hàng này khỏi hệ thống?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Xóa vĩnh viễn">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
 

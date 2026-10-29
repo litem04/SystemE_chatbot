@@ -4,37 +4,43 @@ import com.da.da.repository.ProductRepository;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class IngestionService {
 
-    @Autowired
-    private ProductRepository productRepository; // Kết nối 5432
-    
-    @Autowired
-    private EmbeddingStore<TextSegment> embeddingStore; // Kết nối 5433
-    
-    @Autowired
-    private EmbeddingModel embeddingModel;
+    private final ProductRepository productRepository;
+    private final EmbeddingStore<TextSegment> embeddingStore;
+    private final EmbeddingModel embeddingModel;
+
+    public IngestionService(ProductRepository productRepository,
+                            EmbeddingStore<TextSegment> embeddingStore,
+                            EmbeddingModel embeddingModel) {
+        this.productRepository = productRepository;
+        this.embeddingStore = embeddingStore;
+        this.embeddingModel = embeddingModel;
+    }
 
     public void syncProductsToVectorDb() {
-        productRepository.findAll().forEach(p -> {
-            // Dùng các trường thực tế: name, description, productCategory
-            String content = String.format("Sản phẩm: %s. Loại: %s. Mô tả: %s", 
-                p.getName(), 
-                p.getProductCategory(), 
-                p.getDescription());
+        int page = 0;
+        int size = 100;
+        org.springframework.data.domain.Page<com.da.da.entity.Product> productPage;
+        do {
+            productPage = productRepository.findAll(org.springframework.data.domain.PageRequest.of(page, size));
+            productPage.getContent().forEach(p -> {
+                String content = String.format("Sản phẩm: %s. Loại: %s. Mô tả: %s",
+                        p.getName(),
+                        p.getProductCategory(),
+                        p.getDescription());
 
-            TextSegment segment = TextSegment.from(content);
-            // Tạo vector và lưu vào pgvector
-            embeddingStore.add(embeddingModel.embed(segment).content(), segment);
-        });
+                TextSegment segment = TextSegment.from(content);
+                embeddingStore.add(embeddingModel.embed(segment).content(), segment);
+            });
+            page++;
+        } while (productPage.hasNext());
     }
 
     public void ingestStorePolicy(String policyContent) {
-        // Biến các quy định bảo hành, ship hàng thành Vector
         TextSegment segment = TextSegment.from("Thông tin chính sách cửa hàng: " + policyContent);
         embeddingStore.add(embeddingModel.embed(segment).content(), segment);
     }
