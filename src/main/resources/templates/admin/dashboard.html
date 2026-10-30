@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Tổng quan quản trị | TechGear</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .card-box { border-radius: 10px; color: white; padding: 20px; position: relative; overflow: hidden; }
+        .card-box h3 { font-size: 2.5rem; font-weight: bold; margin: 0; }
+        .card-box p { font-size: 1.1rem; margin: 0; opacity: 0.8; }
+        .card-box .icon { position: absolute; top: 10px; right: 15px; font-size: 4rem; opacity: 0.3; }
+        .bg-blue { background: linear-gradient(45deg, #4099ff, #73b4ff); }
+        .bg-green { background: linear-gradient(45deg, #2ed8b6, #59e0c5); }
+        .bg-yellow { background: linear-gradient(45deg, #FFB64D, #ffcb80); }
+        .bg-red { background: linear-gradient(45deg, #FF5370, #ff869a); }
+    </style>
+</head>
+<body class="bg-light">
+
+<div th:replace="~{admin/fragments/admin-header :: header('dashboard')}"></div>
+
+<div class="container-fluid px-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1"><i class="fas fa-tachometer-alt text-primary me-2"></i>Tổng quan hệ thống</h3>
+            <span class="text-muted small">Báo cáo doanh thu thực tế, hàng đang giao và các chỉ số kinh doanh</span>
+        </div>
+    </div>
+            
+			<div class="row g-3">
+			                
+				<div class="col-md-3">
+				    <div class="card-box bg-green">
+				        <div class="inner">
+				            <h3 th:text="${totalRevenueStr}">0 đ</h3> 
+				            <p>Doanh thu thực tế</p>
+
+				            <div class="mt-2 pt-2 border-top" style="border-color: rgba(255,255,255,0.3) !important;">
+				                <small style="font-size: 14px; font-weight: bold;">
+				                    <i class="fas fa-truck"></i> Đang giao: 
+				                    <span th:text="${shippingRevenueStr}">0 đ</span>
+				                </small>
+				            </div>
+				        </div>
+				        <div class="icon"><i class="fas fa-money-bill-wave"></i></div>
+				    </div>
+				</div>
+                
+                <div class="col-md-3">
+                    <div class="card-box bg-yellow">
+                        <div class="inner">
+                            <h3 th:text="${orderCount}">0</h3>
+                            <p>Tổng đơn hàng</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-shopping-cart"></i></div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card-box bg-blue">
+                        <div class="inner">
+                            <h3 th:text="${productCount}">0</h3>
+                            <p>Sản phẩm kho</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-box"></i></div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card-box bg-red">
+                        <div class="inner">
+                            <h3 th:text="${userCount}">0</h3>
+                            <p>Khách hàng</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-users"></i></div>
+                    </div>
+                </div>
+		   </div>
+
+
+		   <!-- Trạng thái đơn hàng tổng hợp (ERP Order Status Breakdown) -->
+		   <div class="row g-3 mt-3">
+		       <div class="col-md-12">
+		           <div class="card shadow-sm border-0 rounded-3">
+		               <div class="card-body p-3">
+		                   <div class="d-flex justify-content-between align-items-center mb-3">
+		                       <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-tasks text-primary me-2"></i>Trạng thái đơn hàng</h6>
+		                       <a href="/admin/orders" class="small text-decoration-none">Quản lý tất cả đơn hàng &rarr;</a>
+		                   </div>
+		                   <div class="row g-2 text-center">
+		                       <div class="col">
+		                           <div class="p-2 border rounded bg-warning bg-opacity-10 border-warning">
+		                               <small class="text-muted d-block">Chờ xử lý / Đặt hàng</small>
+		                               <span class="fs-4 fw-bold text-warning" th:text="${(orderStatusSummary.get(T(com.techgear.order.entity.enums.OrderStatus).PENDING) ?: 0) + (orderStatusSummary.get(T(com.techgear.order.entity.enums.OrderStatus).WAITING_FOR_PAYMENT) ?: 0)}">0</span>
+		                           </div>
+		                       </div>
+		                       <div class="col">
+		                           <div class="p-2 border rounded bg-info bg-opacity-10 border-info">
+		                               <small class="text-muted d-block">Đang đóng gói</small>
+		                               <span class="fs-4 fw-bold text-info" th:text="${orderStatusSummary.get(T(com.techgear.order.entity.enums.OrderStatus).PROCESSING) ?: 0}">0</span>
+		                           </div>
+		                       </div>
+		                       <div class="col">
+		                           <div class="p-2 border rounded bg-primary bg-opacity-10 border-primary">
+		                               <small class="text-muted d-block">Đang giao hàng</small>
+		                               <span class="fs-4 fw-bold text-primary" th:text="${orderStatusSummary.get(T(com.techgear.order.entity.enums.OrderStatus).SHIPPED) ?: 0}">0</span>
+		                           </div>
+		                       </div>
+		                       <div class="col">
+		                           <div class="p-2 border rounded bg-success bg-opacity-10 border-success">
+		                               <small class="text-muted d-block">Giao thành công</small>
+		                               <span class="fs-4 fw-bold text-success" th:text="${orderStatusSummary.get(T(com.techgear.order.entity.enums.OrderStatus).DELIVERED) ?: 0}">0</span>
+		                           </div>
+		                       </div>
+		                       <div class="col">
+		                           <div class="p-2 border rounded bg-danger bg-opacity-10 border-danger">
+		                               <small class="text-muted d-block">Đã hủy</small>
+		                               <span class="fs-4 fw-bold text-danger" th:text="${orderStatusSummary.get(T(com.techgear.order.entity.enums.OrderStatus).CANCELLED) ?: 0}">0</span>
+		                           </div>
+		                       </div>
+		                   </div>
+		               </div>
+		           </div>
+		       </div>
+		   </div>
+
+		   <div class="row mt-4">
+		       <div class="col-md-12">
+		           <div class="card shadow-sm border-0 rounded-3">
+		               <div class="card-body">
+		                   <h5 class="card-title fw-bold mb-3"><i class="fas fa-chart-line text-primary me-2"></i>Biểu đồ doanh thu thực tế theo ngày</h5>
+		                   <canvas id="revenueChart" style="max-height: 350px;"></canvas>
+		               </div>
+		           </div>
+		       </div>
+		   </div>
+
+		   <!-- 2 Bảng Quản trị ERP: Cảnh báo tồn kho & Top sản phẩm bán chạy -->
+		   <div class="row g-4 mt-1">
+		       <!-- Cảnh báo tồn kho thấp -->
+		       <div class="col-md-6">
+		           <div class="card shadow-sm border-0 rounded-3 h-100">
+		               <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+		                   <h6 class="fw-bold mb-0 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Cảnh báo tồn kho thấp (ERP Alert)</h6>
+		                   <span class="badge bg-danger rounded-pill" th:text="${lowStockProducts.size()} + ' mặt hàng'">0 mặt hàng</span>
+		               </div>
+		               <div class="card-body p-0">
+		                   <div class="table-responsive">
+		                       <table class="table table-hover align-middle mb-0">
+		                           <thead class="table-light small">
+		                               <tr>
+		                                   <th>Sản phẩm</th>
+		                                   <th>Danh mục</th>
+		                                   <th class="text-center">Tồn kho</th>
+		                                   <th class="text-center">Thao tác</th>
+		                               </tr>
+		                           </thead>
+		                           <tbody>
+		                               <tr th:each="p : ${lowStockProducts}">
+		                                   <td>
+		                                       <span class="fw-semibold text-dark text-truncate d-inline-block" style="max-width: 220px;" th:text="${p.name}">Tên SP</span>
+		                                   </td>
+		                                   <td><span class="badge bg-light text-dark" th:text="${p.productCategory}">Laptop</span></td>
+		                                   <td class="text-center">
+		                                       <span th:class="${p.stock == 0 ? 'badge bg-danger' : 'badge bg-warning text-dark'}" th:text="${p.stock}">0</span>
+		                                   </td>
+		                                   <td class="text-center">
+		                                       <a th:href="@{/admin/products/update/{id}(id=${p.id})}" class="btn btn-sm btn-outline-primary py-0 px-2" title="Nhập hàng / Sửa">
+		                                           <i class="fas fa-edit"></i>
+		                                       </a>
+		                                   </td>
+		                               </tr>
+		                               <tr th:if="${lowStockProducts.isEmpty()}">
+		                                   <td colspan="4" class="text-center py-4 text-muted small">
+		                                       <i class="fas fa-check-circle text-success me-1"></i>Tất cả mặt hàng đều có lượng tồn kho an toàn (> 5).
+		                                   </td>
+		                               </tr>
+		                           </tbody>
+		                       </table>
+		                   </div>
+		               </div>
+		           </div>
+		       </div>
+
+		       <!-- Top 5 Sản phẩm bán chạy nhất -->
+		       <div class="col-md-6">
+		           <div class="card shadow-sm border-0 rounded-3 h-100">
+		               <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+		                   <h6 class="fw-bold mb-0 text-success"><i class="fas fa-trophy text-warning me-2"></i>Top 5 Sản phẩm bán chạy nhất</h6>
+		                   <span class="badge bg-success rounded-pill">Best Sellers</span>
+		               </div>
+		               <div class="card-body p-0">
+		                   <div class="table-responsive">
+		                       <table class="table table-hover align-middle mb-0">
+		                           <thead class="table-light small">
+		                               <tr>
+		                                   <th>#</th>
+		                                   <th>Sản phẩm</th>
+		                                   <th class="text-center">Đã bán</th>
+		                                   <th class="text-end">Doanh thu</th>
+		                               </tr>
+		                           </thead>
+		                           <tbody>
+		                               <tr th:each="top, iter : ${topSellingProducts}">
+		                                   <td class="fw-bold text-muted" th:text="${iter.count}">1</td>
+		                                   <td>
+		                                       <span class="fw-semibold text-dark text-truncate d-inline-block" style="max-width: 230px;" th:text="${top.productName}">Tên SP</span>
+		                                   </td>
+		                                   <td class="text-center">
+		                                       <span class="badge bg-primary rounded-pill px-2" th:text="${top.totalSold}">0</span>
+		                                   </td>
+		                                   <td class="text-end text-success fw-bold" th:text="${#numbers.formatDecimal(top.totalRevenue, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+		                                       0 đ
+		                                   </td>
+		                               </tr>
+		                               <tr th:if="${topSellingProducts.isEmpty()}">
+		                                   <td colspan="4" class="text-center py-4 text-muted small">
+		                                       Chưa có dữ liệu đơn hàng thành công để thống kê.
+		                                   </td>
+		                               </tr>
+		                           </tbody>
+		                       </table>
+		                   </div>
+		               </div>
+		           </div>
+		       </div>
+		   </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script th:inline="javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+        const labels = /*[[${chartLabels}]]*/ [];
+        const revenue = /*[[${chartData}]]*/ [];
+        const ctx = document.getElementById('revenueChart');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Doanh thu (VNĐ)',
+                        data: revenue,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('vi-VN') + ' đ';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.raw.toLocaleString('vi-VN') + ' đ';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+
+</body>
+</html>
