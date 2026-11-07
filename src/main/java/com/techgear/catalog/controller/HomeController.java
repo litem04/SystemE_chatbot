@@ -1,9 +1,10 @@
 package com.techgear.catalog.controller;
 
 import com.techgear.catalog.entity.Product;
-import com.techgear.review.entity.ProductReview;
 import com.techgear.catalog.service.ProductService;
+import com.techgear.review.entity.ProductReview;
 import com.techgear.review.service.ReviewService;
+import com.techgear.shared.seed.DataInitializer;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,15 +21,21 @@ public class HomeController {
 
     private final ReviewService reviewService;
     private final ProductService productService;
+    private final DataInitializer dataInitializer;
 
     public HomeController(ReviewService reviewService,
-                          ProductService productService) {
+                          ProductService productService,
+                          DataInitializer dataInitializer) {
         this.reviewService = reviewService;
         this.productService = productService;
+        this.dataInitializer = dataInitializer;
     }
 
     @GetMapping("/")
     public String home(Model model) {
+        if (dataInitializer != null) {
+            dataInitializer.ensureProductsSeeded();
+        }
         model.addAttribute("products", productService.findAll());
         return "client/index";
     }

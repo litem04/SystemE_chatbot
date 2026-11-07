@@ -57,6 +57,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     
     Product findFirstByNameContainingIgnoreCase(String name);
     
+    boolean existsByCode(String code);
+    
+    Optional<Product> findByCode(String code);
+    
     
     @Query("SELECT p FROM Product p WHERE p.productCategory = :categoryName " +
             "AND (LOWER(p.name) LIKE CONCAT('%', :kw1, '%') " +

@@ -2,50 +2,330 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:fragment="header_head">
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .navbar { background: #111 !important; border-bottom: 3px solid #dc3545; }
-        .lang-btn { color: white !important; border: 1px solid #444; padding: 2px 10px; border-radius: 15px; font-size: 0.8rem; text-decoration: none; }
-        .lang-btn:hover { background: #dc3545; border-color: #dc3545; }
-        #trans-loading { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 3px; background: #dc3545; z-index: 9999; }
+        :root {
+            --tg-primary: #d70018;
+            --tg-primary-hover: #b80014;
+            --tg-secondary: #0f172a;
+            --tg-dark: #1e293b;
+            --tg-light: #f8fafc;
+            --tg-text: #1f2937;
+            --tg-muted: #64748b;
+            --tg-border: #e2e8f0;
+            --tg-badge-sale: #ef4444;
+            --tg-badge-deal: #f59e0b;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            color: var(--tg-text);
+            background-color: #f1f5f9;
+        }
+
+        /* Topbar */
+        .tg-topbar {
+            background-color: #111827;
+            color: #cbd5e1;
+            font-size: 0.8rem;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .tg-topbar a {
+            color: #cbd5e1;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .tg-topbar a:hover {
+            color: #ffffff;
+        }
+        .tg-topbar .top-badge {
+            background: rgba(215, 0, 24, 0.25);
+            color: #fca5a5;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Main Navbar */
+        .tg-navbar {
+            background-color: var(--tg-primary);
+            box-shadow: 0 4px 12px rgba(215, 0, 24, 0.15);
+            padding: 10px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+        }
+
+        .tg-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: #ffffff !important;
+        }
+        .tg-brand-logo {
+            width: 38px;
+            height: 38px;
+            background: #ffffff;
+            color: var(--tg-primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 800;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .tg-brand-text {
+            line-height: 1.1;
+        }
+        .tg-brand-title {
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            display: block;
+        }
+        .tg-brand-sub {
+            font-size: 0.68rem;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            opacity: 0.9;
+            font-weight: 600;
+        }
+
+        /* Search Bar */
+        .tg-search-box {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+        }
+        .tg-search-input {
+            border-radius: 9999px;
+            padding: 9px 45px 9px 18px;
+            font-size: 0.9rem;
+            border: 2px solid transparent;
+            background: #ffffff;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+        .tg-search-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.35);
+            background: #ffffff;
+        }
+        .tg-search-btn {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            color: var(--tg-primary);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .tg-search-btn:hover {
+            background: #fee2e2;
+        }
+
+        /* Nav Actions */
+        .tg-nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .tg-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.12);
+            color: #ffffff !important;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .tg-action-btn:hover {
+            background: rgba(255,255,255,0.22);
+            transform: translateY(-1px);
+        }
+        .tg-cart-btn {
+            background: #ffffff;
+            color: var(--tg-primary) !important;
+            position: relative;
+            font-weight: 700;
+        }
+        .tg-cart-btn:hover {
+            background: #f8fafc;
+            color: var(--tg-primary-hover) !important;
+        }
+        .tg-cart-badge {
+            background: #111827;
+            color: #ffffff;
+            font-size: 0.72rem;
+            padding: 2px 7px;
+            border-radius: 9999px;
+            font-weight: 700;
+            margin-left: 4px;
+        }
+
+        .lang-btn {
+            color: #ffffff !important;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .lang-btn:hover {
+            background: #ffffff;
+            color: var(--tg-primary) !important;
+        }
+        #trans-loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #fbbf24;
+            z-index: 9999;
+        }
     </style>
 </head>
 <body>
 <header th:fragment="header_nav">
     <div id="trans-loading"></div>
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="/"><i class="fas fa-bolt text-danger"></i> DuHV6 STORE</a>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link" href="/">Trang chủ</a></li>
-                </ul>
-                
-                <div class="d-flex align-items-center gap-3">
-                    <div class="d-flex gap-2 border-end pe-3">
-                        <a href="javascript:void(0)" onclick="handleTranslate('vi')" class="lang-btn">VN</a>
-                        <a href="javascript:void(0)" onclick="handleTranslate('en')" class="lang-btn">EN</a>
-                    </div>
-                    <a href="/cart" class="text-white position-relative">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" th:text="${session.cartCount != null ? session.cartCount : '0'}">0</span>
-                    </a>
+
+    <!-- Topbar -->
+    <div class="tg-topbar">
+        <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+                <span><i class="fas fa-headset me-1 text-danger"></i> Hotline miễn phí: <strong>1800.2097</strong> (8h00 - 21h30)</span>
+                <span class="d-none d-md-inline text-secondary">|</span>
+                <span class="d-none d-md-inline"><i class="fas fa-store me-1 text-warning"></i> Hệ thống 45 cửa hàng toàn quốc</span>
+                <span class="d-none d-lg-inline text-secondary">|</span>
+                <span class="d-none d-lg-inline top-badge"><i class="fas fa-truck-fast me-1"></i> Giao nhanh 2h</span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <a href="/my-orders"><i class="fas fa-shipping-fast me-1"></i> Tra cứu đơn hàng</a>
+                <span class="text-secondary">|</span>
+                <div class="d-flex gap-1 align-items-center">
+                    <span class="me-1 small">Ngôn ngữ:</span>
+                    <a href="javascript:void(0)" onclick="handleTranslate('vi')" class="lang-btn">VN</a>
+                    <a href="javascript:void(0)" onclick="handleTranslate('en')" class="lang-btn">EN</a>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation Bar -->
+    <nav class="tg-navbar">
+        <div class="container d-flex align-items-center justify-content-between gap-3">
+            <!-- Brand Logo -->
+            <a class="tg-brand" href="/">
+                <div class="tg-brand-logo">
+                    <i class="fas fa-microchip"></i>
+                </div>
+                <div class="tg-brand-text">
+                    <span class="tg-brand-title">TECHGEAR</span>
+                    <span class="tg-brand-sub">Hệ thống công nghệ chính hãng</span>
+                </div>
+            </a>
+
+            <!-- Search Form -->
+            <form class="tg-search-box flex-grow-1 mx-2" action="/search" method="get">
+                <input class="form-control tg-search-input" type="search" name="keyword" 
+                       placeholder="Bạn cần tìm iPhone 16, Laptop Gaming hay Phụ kiện gì hôm nay?..." 
+                       th:value="${keyword}" required autocomplete="off">
+                <button class="tg-search-btn" type="submit" title="Tìm kiếm">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+
+            <!-- Nav Actions -->
+            <div class="tg-nav-actions">
+                <!-- Cart Button -->
+                <a href="/cart" class="tg-action-btn tg-cart-btn">
+                    <i class="fas fa-bag-shopping fa-lg"></i>
+                    <span class="d-none d-md-inline">Giỏ hàng</span>
+                    <span class="tg-cart-badge" th:text="${session.cartCount != null ? session.cartCount : '0'}">0</span>
+                </a>
+
+                <!-- Admin shortcut -->
+                <th:block th:if="${session.admin != null}">
+                    <a class="tg-action-btn bg-warning text-dark" href="/admin/dashboard">
+                        <i class="fas fa-shield-halved"></i>
+                        <span class="d-none d-lg-inline">Admin</span>
+                    </a>
+                    <form action="/logout" method="post" class="d-inline m-0">
+                        <button type="submit" class="tg-action-btn bg-dark text-white border-0">
+                            <i class="fas fa-right-from-bracket"></i>
+                        </button>
+                    </form>
+                </th:block>
+
+                <!-- Customer Auth Dropdown -->
+                <th:block th:if="${session.user != null}">
+                    <div class="dropdown">
+                        <a class="tg-action-btn dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-circle-user fa-lg"></i>
+                            <span class="d-none d-md-inline" th:text="${session.user.name}">Khách hàng</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+                            <li class="px-3 py-2 border-bottom bg-light">
+                                <small class="text-muted d-block">Đăng nhập với tư cách</small>
+                                <strong class="text-truncate d-block" th:text="${session.user.email}">user@email.com</strong>
+                            </li>
+                            <li><a class="dropdown-item py-2" href="/profile"><i class="fas fa-id-badge me-2 text-primary"></i>Hồ sơ cá nhân</a></li>
+                            <li><a class="dropdown-item py-2" href="/my-orders"><i class="fas fa-boxes-packing me-2 text-success"></i>Đơn hàng của tôi</a></li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <form action="/logout" method="post" class="d-inline">
+                                    <button type="submit" class="dropdown-item py-2 text-danger">
+                                        <i class="fas fa-arrow-right-from-bracket me-2"></i>Đăng xuất
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </th:block>
+
+                <!-- Guest Links -->
+                <th:block th:if="${session.user == null and session.admin == null}">
+                    <a class="tg-action-btn" href="/login">
+                        <i class="fas fa-user"></i>
+                        <span class="d-none d-md-inline">Đăng nhập</span>
+                    </a>
+                </th:block>
             </div>
         </div>
     </nav>
 
     <script>
-        // Để hàm này ra ngoài để tránh lỗi "not defined"
         async function handleTranslate(lang) {
             const loader = document.getElementById('trans-loading');
-            loader.style.display = 'block';
+            if (loader) loader.style.display = 'block';
             
-            // Chỉ chọn những thẻ chứa text thực sự để dịch
-            const elements = document.querySelectorAll('h1, h3, h5, p, .nav-link, .card-title, .card-text');
-            
+            const elements = document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, .nav-link, .card-title, .card-text, .tg-feature-title, .tg-brand-sub');
             for (let el of elements) {
                 let text = el.innerText.trim();
                 if (text.length > 1 && !el.querySelector('i')) {
@@ -56,7 +336,7 @@
                     } catch (e) { console.error(e); }
                 }
             }
-            loader.style.display = 'none';
+            if (loader) loader.style.display = 'none';
         }
     </script>
 </header>

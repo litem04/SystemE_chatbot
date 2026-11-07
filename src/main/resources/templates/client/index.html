@@ -1,192 +1,677 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>DuHV6 - Trang chủ</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>TechGear - Hệ Thống Thiết Bị Công Nghệ & Gaming Gear Chính Hãng</title>
+    <div th:replace="~{layout/header :: header_head}"></div>
     <style>
-        .product-card img { height: 200px; object-fit: contain; padding: 10px; }
-        .product-card { transition: transform 0.3s; }
-        .product-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        /* Hero Showcase Section */
+        .hero-banner-main {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 16px;
+            overflow: hidden;
+            color: #ffffff;
+            padding: 36px 32px;
+            position: relative;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 320px;
+        }
+        .hero-banner-main::after {
+            content: '';
+            position: absolute;
+            right: -20px;
+            bottom: -20px;
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle, rgba(215, 0, 24, 0.25) 0%, rgba(215, 0, 24, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .hero-sub-banner {
+            border-radius: 14px;
+            padding: 20px 24px;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            height: 100%;
+        }
+        .hero-sub-banner:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            color: #ffffff;
+        }
+        .sub-banner-1 {
+            background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+        }
+        .sub-banner-2 {
+            background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+        }
+
+        /* Value Propositions Bar */
+        .tg-features-bar {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 18px 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            border: 1px solid #e2e8f0;
+            margin-top: -24px;
+            position: relative;
+            z-index: 10;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .feature-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: #fee2e2;
+            color: var(--tg-primary, #d70018);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+        .feature-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+            color: #1e293b;
+        }
+        .feature-desc {
+            font-size: 0.78rem;
+            color: #64748b;
+            margin-bottom: 0;
+        }
+
+        /* Category Nav Bar */
+        .category-nav-bar {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+        }
+        .category-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: #ffffff;
+            color: #334155;
+            border-radius: 9999px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        }
+        .category-pill:hover {
+            color: var(--tg-primary, #d70018);
+            border-color: #fca5a5;
+            background: #fff5f5;
+            transform: translateY(-1px);
+        }
+        .category-pill.active {
+            background: var(--tg-primary, #d70018);
+            color: #ffffff;
+            border-color: var(--tg-primary, #d70018);
+            box-shadow: 0 4px 12px rgba(215, 0, 24, 0.25);
+        }
+
+        /* Flash Sale Header Box */
+        .flash-sale-box {
+            background: linear-gradient(135deg, #d70018 0%, #ef4444 100%);
+            border-radius: 14px;
+            padding: 16px 24px;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 6px 18px rgba(215, 0, 24, 0.2);
+        }
+        .countdown-timer {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700;
+        }
+        .timer-unit {
+            background: #111827;
+            color: #ffffff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            min-width: 32px;
+            text-align: center;
+        }
+
+        /* Product Card Styling */
+        .product-card {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            border-color: #cbd5e1;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+        }
+        .card-img-wrap {
+            position: relative;
+            width: 100%;
+            height: 190px;
+            background: #ffffff;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .card-img-wrap img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.4s ease;
+        }
+        .product-card:hover .card-img-wrap img {
+            transform: scale(1.06);
+        }
+
+        /* Badges */
+        .badge-discount {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #ef4444;
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+            z-index: 2;
+        }
+        .badge-installment {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            z-index: 2;
+        }
+
+        .product-card-body {
+            padding: 14px 16px 16px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        .product-category-tag {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .product-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1.35;
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            min-height: 40px;
+            text-decoration: none;
+        }
+        .product-title:hover {
+            color: var(--tg-primary, #d70018);
+        }
+
+        /* Price display */
+        .price-box {
+            margin-bottom: 10px;
+        }
+        .price-current {
+            color: var(--tg-primary, #d70018);
+            font-size: 1.15rem;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+        .price-original {
+            font-size: 0.82rem;
+            color: #94a3b8;
+            text-decoration: line-through;
+            margin-left: 6px;
+        }
+        .price-save {
+            font-size: 0.75rem;
+            color: #10b981;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        /* Flash Sale Progress bar */
+        .flash-progress {
+            margin-bottom: 12px;
+        }
+        .flash-progress-bar-bg {
+            height: 6px;
+            background: #fee2e2;
+            border-radius: 9999px;
+            overflow: hidden;
+            position: relative;
+        }
+        .flash-progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
+            border-radius: 9999px;
+            transition: width 0.4s ease;
+        }
+        .flash-sold-text {
+            font-size: 0.72rem;
+            color: #ef4444;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 4px;
+        }
+
+        /* Rating Stars */
+        .product-rating {
+            font-size: 0.78rem;
+            color: #f59e0b;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .product-rating-count {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            margin-left: 2px;
+        }
+
+        /* Card Actions */
+        .card-action-wrap {
+            margin-top: auto;
+            display: flex;
+            gap: 8px;
+        }
+        .btn-view-detail {
+            flex-grow: 1;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #334155;
+            text-align: center;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .btn-view-detail:hover {
+            border-color: var(--tg-primary, #d70018);
+            color: var(--tg-primary, #d70018);
+            background: #fff5f5;
+        }
+        .btn-quick-cart {
+            width: 40px;
+            height: 38px;
+            border-radius: 8px;
+            background: #fee2e2;
+            color: var(--tg-primary, #d70018);
+            border: 1px solid #fca5a5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-quick-cart:hover {
+            background: var(--tg-primary, #d70018);
+            color: #ffffff;
+            border-color: var(--tg-primary, #d70018);
+        }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="/">DuHV6</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-			<form class="d-flex mx-auto" action="/search" method="get">
-			    <input class="form-control me-2" type="search" name="keyword" 
-			           placeholder="Tìm sản phẩm..." required>
-			    <button class="btn btn-outline-light" type="submit">Tìm</button>
-			</form>
-            <ul class="navbar-nav ms-auto">
-				
-                <li class="nav-item"><a class="nav-link active" href="/">Trang chủ</a></li>
-				<li class="nav-item">
-				    <a class="nav-link btn btn-outline-warning text-white ms-2 position-relative" href="/cart">
-				        <i class="fas fa-shopping-cart"></i> Giỏ hàng
-				        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-				            !
-				        </span>
-				    </a>
-				</li>
-                <li class="nav-item me-2" th:if="${session.admin != null}">
-                    <a class="btn btn-warning btn-sm text-dark fw-bold mt-1" href="/admin/dashboard">
-                        <i class="fas fa-shield-alt me-1"></i> Quay lại Admin
-                    </a>
-                </li>
-                <li class="nav-item" th:if="${session.admin != null}">
-                    <form action="/logout" method="post" class="d-inline">
-                        <button type="submit" class="nav-link text-danger border-0 bg-transparent text-start w-100">
-                            <i class="fas fa-sign-out-alt me-1"></i> Đăng xuất
-                        </button>
-                    </form>
-                </li>
-                <li class="nav-item" th:if="${session.user == null and session.admin == null}">
-                    <a class="nav-link" href="/login">Đăng nhập</a>
-                </li>
-                <li class="nav-item" th:if="${session.user == null and session.admin == null}">
-                    <a class="nav-link" href="/register">Đăng ký</a>
-                </li>
-				<th:block th:if="${session.user != null}">
-				    
-				    <li class="nav-item me-2">
-				        <a class="nav-link position-relative" href="/my-orders"> 
-				            <i class="fas fa-bell"></i>
-				            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-				                2
-				                <span class="visually-hidden">unread messages</span>
-				            </span>
-				        </a>
-				    </li>
+<!-- Header Navigation -->
+<div th:replace="~{layout/header :: header_nav}"></div>
 
-				    <li class="nav-item dropdown">
-				        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-				            <i class="fas fa-user-circle me-1"></i> Xin chào, <span th:text="${session.user.name}">User</span>
-				        </a>
-				        <ul class="dropdown-menu dropdown-menu-end">
-				            <li><a class="dropdown-item" href="/profile">
-				                <i class="fas fa-id-card me-2"></i>Hồ sơ cá nhân
-				            </a></li>
-				            
-				            <li><a class="dropdown-item" href="/my-orders">
-				                <i class="fas fa-box-open me-2"></i>Đơn hàng của tôi
-				            </a></li>
-				            
-				            <li><hr class="dropdown-divider"></li>
-				            
-				            <li>
-                                <form action="/logout" method="post" class="d-inline">
-                                    <button type="submit" class="dropdown-item text-danger border-0 bg-transparent text-start w-100">
-                                        <i class="fas fa-sign-out-alt me-2"></i>Đăng xuất
-                                    </button>
-                                </form>
-                            </li>
-				        </ul>
-				    </li>
-				</th:block>
-                </li>
-                
-               
-            </ul>
+<!-- Main Content Area -->
+<main class="container my-4">
+    
+    <!-- Hero Showcase Section (Chỉ hiển thị ở trang chủ mặc định khi không tìm kiếm) -->
+    <section class="mb-4" th:if="${keyword == null and categoryName == null}">
+        <div class="row g-3">
+            <!-- Main Hero Banner -->
+            <div class="col-lg-8">
+                <div class="hero-banner-main">
+                    <span class="badge bg-danger text-white mb-2 py-2 px-3 fw-bold" style="width: fit-content; font-size: 0.8rem; letter-spacing: 0.5px;">
+                        <i class="fas fa-fire me-1"></i> ĐẠI TIỆC CÔNG NGHỆ 2024
+                    </span>
+                    <h1 class="fw-bold display-6 mb-2">LÊN ĐỜI SIÊU PHẨM MỚI</h1>
+                    <p class="text-slate-300 fs-6 mb-4" style="color: #cbd5e1; max-width: 500px;">
+                        Trợ giá thu cũ đổi mới lên đến <strong>2.500.000₫</strong>. Trả góp 0% lãi suất duyệt hồ sơ nhanh trong 5 phút.
+                    </p>
+                    <div class="d-flex gap-3 flex-wrap">
+                        <a href="/category?name=Mobile" class="btn btn-danger px-4 py-2 fw-bold" style="border-radius: 8px;">
+                            Xem điện thoại hot <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                        <a href="/category?name=Laptop" class="btn btn-outline-light px-4 py-2 fw-semibold" style="border-radius: 8px;">
+                            Laptop Gaming <i class="fas fa-laptop ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2 Sub Banners -->
+            <div class="col-lg-4 d-flex flex-column gap-3">
+                <a href="/category?name=Laptop" class="hero-sub-banner sub-banner-1">
+                    <div>
+                        <span class="badge bg-dark text-white mb-1" style="font-size: 0.7rem;">ƯU ĐÃI SINH VIÊN</span>
+                        <h5 class="fw-bold mb-1">Laptop Học Tập & Gaming</h5>
+                        <p class="small mb-0 opacity-90">Tặng Balo ROG & Chuột không dây</p>
+                    </div>
+                    <i class="fas fa-gamepad fa-2x opacity-75"></i>
+                </a>
+                <a href="/category?name=Accessories" class="hero-sub-banner sub-banner-2">
+                    <div>
+                        <span class="badge bg-warning text-dark mb-1" style="font-size: 0.7rem;">SALE PHỤ KIỆN</span>
+                        <h5 class="fw-bold mb-1">Tuần Lễ Gaming Gear</h5>
+                        <p class="small mb-0 opacity-90">Bàn phím cơ & Màn hình 240Hz giảm tới 40%</p>
+                    </div>
+                    <i class="fas fa-headphones fa-2x opacity-75"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- 4 Golden Guarantees Bar -->
+        <div class="tg-features-bar mt-4">
+            <div class="row g-3">
+                <div class="col-6 col-lg-3">
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-certificate"></i></div>
+                        <div>
+                            <div class="feature-title">100% Chính Hãng</div>
+                            <div class="feature-desc">Bảo hành 12 - 24T toàn quốc</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-truck-fast"></i></div>
+                        <div>
+                            <div class="feature-title">Giao Nhanh 2 Giờ</div>
+                            <div class="feature-desc">Miễn phí cho đơn từ 500k</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-arrows-rotate"></i></div>
+                        <div>
+                            <div class="feature-title">1 Đổi 1 Trong 30 Ngày</div>
+                            <div class="feature-desc">Lỗi phần cứng đổi máy mới ngay</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="feature-item">
+                        <div class="feature-icon"><i class="fas fa-credit-card"></i></div>
+                        <div>
+                            <div class="feature-title">Trả Góp 0% Lãi Suất</div>
+                            <div class="feature-desc">Duyệt nhanh qua thẻ tín dụng</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Category Pills Navigation -->
+    <section class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                <i class="fas fa-layer-group text-danger"></i> Danh mục sản phẩm
+            </h5>
+            <span class="text-muted small">
+                Tổng cộng: <strong class="text-danger" th:text="${products != null ? #lists.size(products) : 0}">0</strong> sản phẩm
+            </span>
+        </div>
+        <div class="category-nav-bar">
+            <a href="/" class="category-pill" th:classappend="${categoryName == null and keyword == null} ? 'active'">
+                <i class="fas fa-border-all"></i> Tất cả sản phẩm
+            </a>
+            <a href="/category?name=Mobile" class="category-pill" th:classappend="${categoryName == 'Mobile'} ? 'active'">
+                <i class="fas fa-mobile-screen-button"></i> Điện thoại thông minh
+            </a>
+            <a href="/category?name=Laptop" class="category-pill" th:classappend="${categoryName == 'Laptop'} ? 'active'">
+                <i class="fas fa-laptop"></i> Laptop & Máy tính xách tay
+            </a>
+            <a href="/category?name=Accessories" class="category-pill" th:classappend="${categoryName == 'Accessories'} ? 'active'">
+                <i class="fas fa-keyboard"></i> Phụ kiện & Gaming Gear
+            </a>
+        </div>
+    </section>
+
+    <!-- Search / Filter Notice Banner -->
+    <div th:if="${keyword != null}" class="alert bg-white border shadow-sm p-3 mb-4 rounded-3 d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-magnifying-glass text-danger me-2"></i>
+            Kết quả tìm kiếm cho từ khóa: <strong class="text-danger" th:text="'&quot;' + ${keyword} + '&quot;'"></strong>
+            <span class="badge bg-secondary ms-2" th:text="${products != null ? #lists.size(products) : 0} + ' kết quả'">0</span>
+        </div>
+        <a href="/" class="btn btn-sm btn-outline-danger">Xem tất cả</a>
+    </div>
+
+    <div th:if="${categoryName != null}" class="alert bg-white border shadow-sm p-3 mb-4 rounded-3 d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-tag text-danger me-2"></i>
+            Danh mục đang lọc: <strong class="text-danger" th:text="${categoryName}"></strong>
+        </div>
+        <a href="/" class="btn btn-sm btn-outline-secondary">Xóa bộ lọc</a>
+    </div>
+
+    <!-- Empty Results Alert -->
+    <div th:if="${products != null and #lists.isEmpty(products)}" class="card text-center p-5 border-0 shadow-sm rounded-4 my-5">
+        <div class="mb-3">
+            <i class="fas fa-box-open fa-3x text-muted opacity-50"></i>
+        </div>
+        <h4 class="fw-bold text-dark">Rất tiếc, không tìm thấy sản phẩm phù hợp!</h4>
+        <p class="text-muted small">Hãy thử tìm kiếm với từ khóa khác như "iPhone", "MacBook", "RTX" hoặc duyệt toàn bộ danh mục.</p>
+        <div class="mt-2">
+            <a href="/" class="btn btn-danger px-4 py-2">Quay lại trang chủ</a>
         </div>
     </div>
-</nav>
 
-<div class="bg-primary text-white text-center py-5 mb-4">
-    <h1>Săn Sale Công Nghệ</h1>
-    <p>Giảm giá lên đến 50% các thiết bị điện tử</p>
-</div>
-<div class="bg-light py-2 shadow-sm mb-4">
-    <div class="container d-flex justify-content-center">
-        <a href="/" class="btn btn-link text-decoration-none fw-bold text-dark mx-2">Tất cả</a>
-        
-        <a href="/category?name=Mobile" class="btn btn-link text-decoration-none text-dark mx-2">Điện thoại</a>
-        <a href="/category?name=Laptop" class="btn btn-link text-decoration-none text-dark mx-2">Laptop</a>
-        <a href="/category?name=Accessories" class="btn btn-link text-decoration-none text-dark mx-2">Phụ kiện</a>
+    <!-- Flash Sale Banner (Chỉ hiển thị khi có sản phẩm và đang ở trang chủ) -->
+    <div class="flash-sale-box" th:if="${products != null and !#lists.isEmpty(products) and keyword == null and categoryName == null}">
+        <div class="d-flex align-items-center gap-3">
+            <span class="fs-4 fw-bold"><i class="fas fa-bolt text-warning me-2"></i>GIỜ VÀNG GIÁ SỐC</span>
+            <span class="badge bg-light text-danger fw-bold d-none d-md-inline">TIẾT KIỆM ĐẾN 40%</span>
+        </div>
+        <div class="countdown-timer">
+            <span class="small me-2 opacity-90"><i class="far fa-clock me-1"></i>Kết thúc sau:</span>
+            <span class="timer-unit" id="cd-hours">06</span> :
+            <span class="timer-unit" id="cd-minutes">42</span> :
+            <span class="timer-unit" id="cd-seconds">18</span>
+        </div>
     </div>
-</div>
-<div class="container mb-5">
-	<h3 class="text-center mb-4 fw-bold" 
-	        th:if="${keyword == null and categoryName == null}">Sản phẩm mới nhất</h3>
 
-	    <h3 class="text-center mb-4 fw-bold text-primary" th:if="${keyword != null}">
-	        Kết quả tìm kiếm cho: "<span th:text="${keyword}"></span>"
-	    </h3>
-
-	    <h3 class="text-center mb-4 fw-bold text-success" th:if="${categoryName != null}">
-	        Danh mục: <span th:text="${categoryName}"></span>
-	    </h3>
-
-	    <div th:if="${products != null and #lists.isEmpty(products)}" class="alert alert-warning text-center">
-	        Không tìm thấy sản phẩm nào! <a href="/">Quay lại xem tất cả</a>
-	    </div>
-	    
-	    <div class="row row-cols-1 row-cols-md-4 g-4">
-	       </div>
-    
-    <div class="row row-cols-1 row-cols-md-4 g-4">
+    <!-- Product Grid Listing -->
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3 mb-5" th:if="${products != null and !#lists.isEmpty(products)}">
         <div class="col" th:each="p : ${products}">
-            <div class="card h-100 product-card">
-             	<img th:src="${p.image != null and p.image.startsWith('http') ? p.image : '/product-images/' + (p.image != null ? p.image : 'no-image.png')}" 
-		     style="width: 100px; height: 100px; object-fit: contain;">
-			 <div class="card-body d-flex flex-column">
-			     <h5 class="card-title text-truncate" th:text="${p.name}">Tên sản phẩm</h5>
+            <div class="product-card">
+                
+                <!-- Badges -->
+                <th:block th:if="${p.discountPrice != null and p.discountPrice > 0 and p.discountLimit > p.discountSold and p.price != null and p.price > p.discountPrice}">
+                    <span class="badge-discount" 
+                          th:with="discountPercent=${(p.price - p.discountPrice) * 100 / p.price}"
+                          th:text="'-' + ${#numbers.formatDecimal(discountPercent, 0, 'COMMA', 0, 'POINT')} + '%'">-15%</span>
+                </th:block>
+                <span class="badge-installment">Trả góp 0%</span>
 
-			     <div class="price-section mb-2">
-			         
-			         <th:block th:if="${p.discountPrice != null and p.discountPrice > 0 and p.discountLimit > p.discountSold}">
-			             <p class="card-text text-danger fw-bold mb-0" 
-			                th:text="${#numbers.formatDecimal(p.discountPrice, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">800k</p>
-			             
-			             <small class="text-muted text-decoration-line-through" 
-			                    th:text="${#numbers.formatDecimal(p.price, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">1tr</small>
-			             
-			             <span class="badge bg-danger ms-1" style="font-size: 0.7rem;">Flash Sale</span>
-			             
-						 <div class="progress mt-1" style="height: 3px;" 
-						      th:if="${p.discountLimit != null and p.discountLimit > 0}">
-						      
-						     <div class="progress-bar bg-danger" 
-						          th:style="'width:' + ${(p.discountSold != null ? p.discountSold : 0) * 100 / p.discountLimit} + '%'">
-						     </div>
-						 </div>
-			         </th:block>
+                <!-- Image Wrap -->
+                <div class="card-img-wrap">
+                    <a th:href="@{/product/{id}(id=${p.id})}" class="d-flex align-items-center justify-content-center w-100 h-100">
+                        <img th:src="${p.image != null and p.image.startsWith('http') ? p.image : '/product-images/' + (p.image != null ? p.image : 'no-image.png')}" 
+                             th:alt="${p.name}" loading="lazy">
+                    </a>
+                </div>
 
-			         <th:block th:unless="${p.discountPrice != null and p.discountPrice > 0 and p.discountLimit > p.discountSold}">
-			             <p class="card-text text-dark fw-bold mb-0" 
-			                th:text="${#numbers.formatDecimal(p.price, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">1tr</p>
-			             
-			             <small class="text-muted text-decoration-line-through" 
-			                    th:if="${p.mrpPrice != null}"
-			                    th:text="${#numbers.formatDecimal(p.mrpPrice, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">1.2tr</small>
-			         </th:block>
+                <!-- Product Body -->
+                <div class="product-card-body">
+                    <span class="product-category-tag" th:text="${p.productCategory}">Laptop</span>
+                    
+                    <a th:href="@{/product/{id}(id=${p.id})}" class="product-title" th:text="${p.name}" th:title="${p.name}">
+                        Tên sản phẩm
+                    </a>
 
-			     </div>
+                    <!-- Rating Stars -->
+                    <div class="product-rating">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star-half-stroke"></i>
+                        <span class="product-rating-count">(4.8)</span>
+                    </div>
 
-			     <div class="mt-auto pt-3">
-			         <a th:href="@{/product/{id}(id=${p.id})}" class="btn btn-outline-primary w-100 mb-2">Xem chi tiết</a>
-			         
-			         <form th:action="@{/cart/add}" method="post" class="w-100 mt-2">
-                         <input type="hidden" name="productId" th:value="${p.id}" />
-                         <button type="submit" class="btn btn-success w-100">
-                             <i class="fas fa-cart-plus"></i> Thêm vào giỏ
-                         </button>
-                     </form>
-			     </div>
-			 </div>
+                    <!-- Price Section -->
+                    <div class="price-box">
+                        <!-- Trường hợp có Flash Sale -->
+                        <th:block th:if="${p.discountPrice != null and p.discountPrice > 0 and p.discountLimit > p.discountSold}">
+                            <div class="d-flex align-items-baseline">
+                                <span class="price-current" 
+                                      th:text="${#numbers.formatDecimal(p.discountPrice, 0, 'COMMA', 0, 'POINT')} + ' ₫'">
+                                    25.900.000 ₫
+                                </span>
+                                <span class="price-original" 
+                                      th:text="${#numbers.formatDecimal(p.price, 0, 'COMMA', 0, 'POINT')} + ' ₫'">
+                                    31.000.000 ₫
+                                </span>
+                            </div>
+                            <div class="price-save" th:with="saveAmount=${p.price - p.discountPrice}">
+                                <i class="fas fa-tag me-1"></i>Tiết kiệm: <span th:text="${#numbers.formatDecimal(saveAmount, 0, 'COMMA', 0, 'POINT')} + ' ₫'"></span>
+                            </div>
+                        </th:block>
+
+                        <!-- Trường hợp giá bán thường -->
+                        <th:block th:unless="${p.discountPrice != null and p.discountPrice > 0 and p.discountLimit > p.discountSold}">
+                            <div class="d-flex align-items-baseline">
+                                <span class="price-current" 
+                                      th:text="${#numbers.formatDecimal(p.price, 0, 'COMMA', 0, 'POINT')} + ' ₫'">
+                                    20.000.000 ₫
+                                </span>
+                                <span class="price-original" 
+                                      th:if="${p.mrpPrice != null and p.mrpPrice > p.price}"
+                                      th:text="${#numbers.formatDecimal(p.mrpPrice, 0, 'COMMA', 0, 'POINT')} + ' ₫'">
+                                </span>
+                            </div>
+                            <div class="price-save text-muted small" th:if="${p.mrpPrice == null or p.mrpPrice <= p.price}">
+                                <i class="fas fa-check-circle text-success me-1"></i>Giá niêm yết chính hãng
+                            </div>
+                            <div class="price-save" th:if="${p.mrpPrice != null and p.mrpPrice > p.price}" th:with="saveMrp=${p.mrpPrice - p.price}">
+                                <i class="fas fa-tag me-1"></i>Tiết kiệm: <span th:text="${#numbers.formatDecimal(saveMrp, 0, 'COMMA', 0, 'POINT')} + ' ₫'"></span>
+                            </div>
+                        </th:block>
+                    </div>
+
+                    <!-- Flash Sale Progress Bar (nếu đang trong chương trình sale) -->
+                    <div class="flash-progress" th:if="${p.discountPrice != null and p.discountPrice > 0 and p.discountLimit > 0 and p.discountLimit > p.discountSold}">
+                        <div class="flash-progress-bar-bg">
+                            <div class="flash-progress-bar-fill" 
+                                 th:style="'width:' + ${(p.discountSold != null ? p.discountSold : 0) * 100 / p.discountLimit} + '%'">
+                            </div>
+                        </div>
+                        <div class="flash-sold-text">
+                            <span><i class="fas fa-fire me-1"></i>Đã bán: [[${p.discountSold != null ? p.discountSold : 0}]] suất</span>
+                            <span>Còn: [[${p.discountLimit - (p.discountSold != null ? p.discountSold : 0)}]]</span>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="card-action-wrap">
+                        <a th:href="@{/product/{id}(id=${p.id})}" class="btn-view-detail">
+                            Chi tiết
+                        </a>
+                        <form th:action="@{/cart/add}" method="post" class="m-0">
+                            <input type="hidden" name="productId" th:value="${p.id}" />
+                            <button type="submit" class="btn-quick-cart" title="Thêm nhanh vào giỏ hàng">
+                                <i class="fas fa-cart-plus"></i>
+                            </button>
+                        </form>
+                    </div>
+
+                </div>
             </div>
         </div>
     </div>
-</div>
+</main>
 
+<!-- Footer Fragment -->
 <div th:replace="~{layout/footer :: footer_fragment}"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Countdown Timer logic cho Flash Sale
+    (function initFlashSaleTimer() {
+        const hoursEl = document.getElementById('cd-hours');
+        const minutesEl = document.getElementById('cd-minutes');
+        const secondsEl = document.getElementById('cd-seconds');
+        if (!hoursEl || !minutesEl || !secondsEl) return;
+
+        // Tính thời gian đến 24h đêm của ngày hiện tại
+        function updateTimer() {
+            const now = new Date();
+            const endOfDay = new Date();
+            endOfDay.setHours(23, 59, 59, 999);
+            const diff = Math.max(0, endOfDay - now);
+
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((diff / 1000 / 60) % 60);
+            const seconds = Math.floor((diff / 1000) % 60);
+
+            hoursEl.innerText = String(hours).padStart(2, '0');
+            minutesEl.innerText = String(minutes).padStart(2, '0');
+            secondsEl.innerText = String(seconds).padStart(2, '0');
+        }
+        updateTimer();
+        setInterval(updateTimer, 1000);
+    })();
+</script>
 </body>
 </html>
